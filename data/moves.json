@@ -1,0 +1,15 @@
+{
+  "fuego": [
+    {"nombre": "ascuas", "poder_base": 30},
+    {"nombre": "llamarada", "poder_base": 50},
+    {"nombre": "nitrocarga", "poder_base": 30}
+  ],
+  "agua": [
+    {"nombre": "pistola_agua", "poder_base": 35},
+    {"nombre": "hidrobomba", "poder_base": 55}
+  ],
+  "normal": [
+    {"nombre": "placaje", "poder_base": 35},
+    {"nombre": "ataque_rapido", "poder_base": 40}
+  ]
+}

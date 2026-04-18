@@ -1,0 +1,20 @@
+{
+  "charmander": {
+    "tipos": ["fuego"],
+    "ataque_base": 52,
+    "defensa_base": 43,
+    "velocidad_base": 65
+  },
+  "squirtle": {
+    "tipos": ["agua"],
+    "ataque_base": 48,
+    "defensa_base": 65,
+    "velocidad_base": 43
+  },
+  "bulbasaur": {
+    "tipos": ["planta"],
+    "ataque_base": 49,
+    "defensa_base": 49,
+    "velocidad_base": 45
+  }
+}
