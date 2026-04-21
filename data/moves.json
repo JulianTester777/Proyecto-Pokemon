@@ -1,15 +1,52 @@
 {
   "fuego": [
-    {"nombre": "ascuas", "poder_base": 30},
-    {"nombre": "llamarada", "poder_base": 50},
-    {"nombre": "nitrocarga", "poder_base": 30}
+    {"nombre": "ascuas",      "tipo": "fuego", "poder_base": 30},
+    {"nombre": "llamarada",   "tipo": "fuego", "poder_base": 50},
+    {"nombre": "nitrocarga",  "tipo": "fuego", "poder_base": 30}
   ],
   "agua": [
-    {"nombre": "pistola_agua", "poder_base": 35},
-    {"nombre": "hidrobomba", "poder_base": 55}
+    {"nombre": "pistola_agua","tipo": "agua",  "poder_base": 35},
+    {"nombre": "hidrobomba",  "tipo": "agua",  "poder_base": 55},
+    {"nombre": "surf",        "tipo": "agua",  "poder_base": 45}
+  ],
+  "planta": [
+    {"nombre": "latigo_cepa", "tipo": "planta","poder_base": 35},
+    {"nombre": "hoja_afilada","tipo": "planta","poder_base": 50},
+    {"nombre": "rayo_solar",  "tipo": "planta","poder_base": 60}
+  ],
+  "electrico": [
+    {"nombre": "impactrueno", "tipo": "electrico", "poder_base": 35},
+    {"nombre": "rayo",        "tipo": "electrico", "poder_base": 55},
+    {"nombre": "trueno",      "tipo": "electrico", "poder_base": 65}
+  ],
+  "roca": [
+    {"nombre": "lanzarrocas", "tipo": "roca",  "poder_base": 30},
+    {"nombre": "avalancha",   "tipo": "roca",  "poder_base": 50},
+    {"nombre": "roca_afilada","tipo": "roca",  "poder_base": 40}
+  ],
+  "tierra": [
+    {"nombre": "terremoto",   "tipo": "tierra","poder_base": 60},
+    {"nombre": "excavar",     "tipo": "tierra","poder_base": 45},
+    {"nombre": "arena_tumba", "tipo": "tierra","poder_base": 30}
+  ],
+  "hielo": [
+    {"nombre": "viento_hielo","tipo": "hielo", "poder_base": 35},
+    {"nombre": "ventisca",    "tipo": "hielo", "poder_base": 55},
+    {"nombre": "rayo_hielo",  "tipo": "hielo", "poder_base": 50}
+  ],
+  "bicho": [
+    {"nombre": "picadura",    "tipo": "bicho", "poder_base": 30},
+    {"nombre": "zumbido",     "tipo": "bicho", "poder_base": 25},
+    {"nombre": "tijera_x",    "tipo": "bicho", "poder_base": 50}
+  ],
+  "volador": [
+    {"nombre": "tornado",     "tipo": "volador","poder_base": 40},
+    {"nombre": "ataque_ala",  "tipo": "volador","poder_base": 35},
+    {"nombre": "tajo_aereo",  "tipo": "volador","poder_base": 55}
   ],
   "normal": [
-    {"nombre": "placaje", "poder_base": 35},
-    {"nombre": "ataque_rapido", "poder_base": 40}
+    {"nombre": "placaje",     "tipo": "normal","poder_base": 35},
+    {"nombre": "ataque_rapido","tipo":"normal","poder_base": 40},
+    {"nombre": "golpe_cuerpo","tipo": "normal","poder_base": 50}
   ]
 }
