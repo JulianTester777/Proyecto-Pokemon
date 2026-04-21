@@ -2,69 +2,187 @@ defmodule PokemonBattle.Servidor do
   alias PokemonBattle.{GestorEntrenadores, Persistencia, SistemaSobres}
 
   def iniciar do
-    # 1. Cargamos datos base del juego
     pokes_base = Persistencia.cargar_datos("data/pokemon.json")
-    movs_base = Persistencia.cargar_datos("data/moves.json")
+    movs_base  = Persistencia.cargar_datos("data/moves.json")
+    tienda     = Persistencia.cargar_datos("data/tienda.json")
 
     IO.puts("==================================")
     IO.puts("   BIENVENIDO A POKÉMON BATTLE    ")
     IO.puts("==================================")
+    IO.puts("Comandos: iniciar <usuario> | salir")
 
-    nombre = IO.gets("Ingresa tu nombre de entrenador: ") |> String.trim()
-
-    # 2. Iniciamos sesión (Carga o crea el perfil en el JSON)
-    entrenador = GestorEntrenadores.iniciar_sesion(nombre)
-
-    bucle_principal(entrenador, pokes_base, movs_base)
+    bucle_login(pokes_base, movs_base, tienda)
   end
 
-  defp bucle_principal(entrenador, pokes, movs) do
-    IO.puts("\n--- ESTADO DE #{entrenador["nombre"]} ---")
-    IO.puts("Monedas: #{entrenador["monedas"]} | Pokémon: #{length(entrenador["coleccion"])}")
-    IO.puts("1. Abrir Sobre (150 monedas)")
-    IO.puts("2. Ver Colección Detallada")
-    IO.puts("3. Guardar y Salir")
+  # ── LOGIN ──────────────────────────────────────────────────────────────────
 
-    opcion = IO.gets("\nSelecciona una opción: ") |> String.trim()
+  defp bucle_login(pokes, movs, tienda) do
+    comando = IO.gets("\n> ") |> String.trim()
 
-    case opcion do
-      "1" ->
-        # Lógica de compra
-        if entrenador["monedas"] >= 150 do
-          nuevos = SistemaSobres.abrir_sobre(entrenador["nombre"], pokes, movs)
+    case String.split(comando) do
+      ["iniciar", nombre] ->
+        entrenador = GestorEntrenadores.iniciar_sesion(nombre)
+        bucle_principal(entrenador, pokes, movs, tienda)
 
-          # Actualizamos el mapa del entrenador
-          entrenador_actualizado = %{entrenador |
-            "monedas" => entrenador["monedas"] - 150,
-            "coleccion" => entrenador["coleccion"] ++ nuevos
-          }
+      ["salir"] ->
+        IO.puts("¡Hasta luego!")
 
-          # GUARDADO AUTOMÁTICO en el JSON
-          GestorEntrenadores.guardar_entrenador(entrenador_actualizado)
+      _ ->
+        IO.puts("Comando no reconocido. Usa: iniciar <usuario>")
+        bucle_login(pokes, movs, tienda)
+    end
+  end
 
-          IO.puts("¡Sobre abierto con éxito!")
-          bucle_principal(entrenador_actualizado, pokes, movs)
-        else
-          IO.puts("¡No tienes suficientes monedas!")
-          bucle_principal(entrenador, pokes, movs)
-        end
+  # ── BUCLE PRINCIPAL ────────────────────────────────────────────────────────
 
-      "2" ->
-        IO.puts("\n--- TU EQUIPO ---")
-        if entrenador["coleccion"] == [], do: IO.puts("Tu colección está vacía.")
+  defp bucle_principal(entrenador, pokes, movs, tienda) do
+    IO.puts("\nComandos disponibles:")
+    IO.puts("  perfil | inventario | clasificacion")
+    IO.puts("  tienda | comprar_sobre <tipo> | abrir_sobre <id|ultimo>")
+    IO.puts("  salir")
 
-        Enum.each(entrenador["coleccion"], fn p ->
-          # Ajustamos según cómo se guardan en tu struct/mapa
-          IO.puts("- #{String.capitalize(p.especie || p["especie"])} | Atk: #{p.ataque || p["ataque"]}")
-        end)
-        bucle_principal(entrenador, pokes, movs)
+    comando = IO.gets("\n> ") |> String.trim()
+    partes  = String.split(comando)
 
-      "3" ->
+    case partes do
+      ["perfil"] ->
+        GestorEntrenadores.perfil(entrenador)
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["inventario"] ->
+        GestorEntrenadores.inventario(entrenador)
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["clasificacion"] ->
+        GestorEntrenadores.clasificacion()
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["tienda"] ->
+        mostrar_tienda(tienda)
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["comprar_sobre", tipo] ->
+        entrenador = comprar_sobre(entrenador, tipo, tienda)
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["abrir_sobre", ref] ->
+        entrenador = abrir_sobre(entrenador, ref, pokes, movs, tienda)
+        bucle_principal(entrenador, pokes, movs, tienda)
+
+      ["salir"] ->
+        GestorEntrenadores.guardar_entrenador(entrenador)
         IO.puts("¡Partida guardada! Adiós, #{entrenador["nombre"]}.")
 
       _ ->
-        IO.puts("Opción inválida.")
-        bucle_principal(entrenador, pokes, movs)
+        IO.puts("Comando no reconocido.")
+        bucle_principal(entrenador, pokes, movs, tienda)
+    end
+  end
+
+  # ── TIENDA ─────────────────────────────────────────────────────────────────
+
+  defp mostrar_tienda(tienda) do
+    IO.puts("\n=== Tienda ===")
+    IO.puts("Tipo       Precio   Común   Raro   Épico")
+
+    Enum.each(tienda, fn {tipo, datos} ->
+      p = datos["probabilidades"]
+      IO.puts("#{String.pad_trailing(tipo, 10)} #{String.pad_leading(to_string(datos["precio"]), 6)}   #{p["comun"]}%    #{p["raro"]}%    #{p["epico"]}%")
+    end)
+  end
+
+  # ── COMPRAR SOBRE ──────────────────────────────────────────────────────────
+
+  defp comprar_sobre(entrenador, tipo, tienda) do
+    if Map.has_key?(tienda, tipo) do
+      precio = tienda[tipo]["precio"]
+
+      if entrenador["monedas"] >= precio do
+        nuevo_sobre = %{"id" => :rand.uniform(100_000), "tipo" => tipo}
+
+        entrenador_actualizado = %{entrenador |
+          "monedas"           => entrenador["monedas"] - precio,
+          "sobres_pendientes" => entrenador["sobres_pendientes"] ++ [nuevo_sobre]
+        }
+
+        GestorEntrenadores.guardar_entrenador(entrenador_actualizado)
+        IO.puts("¡Sobre #{tipo} comprado! ID: #{nuevo_sobre["id"]}")
+        entrenador_actualizado
+      else
+        IO.puts("No tienes suficientes monedas. Necesitas #{precio}, tienes #{entrenador["monedas"]}.")
+        entrenador
+      end
+    else
+      IO.puts("Tipo de sobre no válido. Usa: basico | avanzado")
+      entrenador
+    end
+  end
+
+  # ── ABRIR SOBRE ────────────────────────────────────────────────────────────
+
+  defp abrir_sobre(entrenador, ref, pokes, movs, tienda) do
+    sobres = entrenador["sobres_pendientes"]
+
+    sobre = case ref do
+      "ultimo" -> List.last(sobres)
+      id_str   ->
+        id = String.to_integer(id_str)
+        Enum.find(sobres, fn s -> s["id"] == id end)
+    end
+
+    if sobre do
+      nuevos_pkm = SistemaSobres.abrir_sobre(
+        entrenador["nombre"],
+        sobre["tipo"],
+        pokes,
+        movs,
+        tienda
+      )
+
+      IO.puts("\n¡Sobre abierto! Obtuviste:")
+      nuevos_pkm
+      |> Enum.with_index(1)
+      |> Enum.each(fn {pkm, i} ->
+        especie   = to_string(pkm.especie)
+        tipos     = pkm.tipos || []
+        tipos_str = tipos |> Enum.map(&String.capitalize/1) |> Enum.join("/")
+        rareza    = to_string(pkm.rareza)
+        movs_str  = pkm.movimientos
+                    |> Enum.map(fn m -> "#{m["nombre"]} (#{m["poder_base"]})" end)
+                    |> Enum.join(", ")
+
+        IO.puts("\n  #{i}. [##{pkm.id}] #{String.capitalize(especie)} (#{tipos_str}) [#{rareza}] - Dueño original: #{pkm.dueño_original}")
+        IO.puts("     Movimientos: #{movs_str}")
+      end)
+
+      # Serializar Pokémon a mapas para guardar en JSON
+      pkm_maps = Enum.map(nuevos_pkm, fn pkm ->
+        %{
+          "id"            => pkm.id,
+          "especie"       => to_string(pkm.especie),
+          "tipos"         => pkm.tipos || [],
+          "dueño_original"=> pkm.dueño_original,
+          "rareza"        => to_string(pkm.rareza),
+          "ataque"        => pkm.ataque,
+          "defensa"       => pkm.defensa,
+          "velocidad"     => pkm.velocidad,
+          "salud_maxima"  => 100,
+          "movimientos"   => pkm.movimientos
+        }
+      end)
+
+      sobres_restantes = Enum.reject(sobres, fn s -> s["id"] == sobre["id"] end)
+
+      entrenador_actualizado = %{entrenador |
+        "coleccion"         => entrenador["coleccion"] ++ pkm_maps,
+        "sobres_pendientes" => sobres_restantes
+      }
+
+      GestorEntrenadores.guardar_entrenador(entrenador_actualizado)
+      entrenador_actualizado
+    else
+      IO.puts("Sobre no encontrado. Usa 'perfil' para ver tus sobres pendientes.")
+      entrenador
     end
   end
 end

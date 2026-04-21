@@ -1,8 +1,13 @@
 [
   {
-    "coleccion": [],
+    "nombre": "Julian",
     "monedas": 500,
-    "nombre": "Julian"
+    "monedas_acumuladas": 500,
+    "victorias": 0,
+    "coleccion": [],
+    "sobres_pendientes": [
+      {"id": 1, "tipo": "basico"}
+    ]
   }
 ]
 
