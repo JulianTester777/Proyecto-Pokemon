@@ -1,52 +1,91 @@
 {
-  "fuego": [
-    {"nombre": "ascuas",      "tipo": "fuego", "poder_base": 30},
-    {"nombre": "llamarada",   "tipo": "fuego", "poder_base": 50},
-    {"nombre": "nitrocarga",  "tipo": "fuego", "poder_base": 30}
+  "Fuego": [
+    {"nombre": "ascuas", "tipo": "Fuego", "poder_base": 30},
+    {"nombre": "llamarada", "tipo": "Fuego", "poder_base": 50},
+    {"nombre": "nitrocarga", "tipo": "Fuego", "poder_base": 30},
+    {"nombre": "lanzallamas", "tipo": "Fuego", "poder_base": 55},
+    {"nombre": "giro_fuego", "tipo": "Fuego", "poder_base": 35},
+    {"nombre": "colmillo_igneo", "tipo": "Fuego", "poder_base": 45}
   ],
-  "agua": [
-    {"nombre": "pistola_agua","tipo": "agua",  "poder_base": 35},
-    {"nombre": "hidrobomba",  "tipo": "agua",  "poder_base": 55},
-    {"nombre": "surf",        "tipo": "agua",  "poder_base": 45}
+
+  "Agua": [
+    {"nombre": "pistola_agua", "tipo": "Agua", "poder_base": 35},
+    {"nombre": "hidrobomba", "tipo": "Agua", "poder_base": 55},
+    {"nombre": "surf", "tipo": "Agua", "poder_base": 45},
+    {"nombre": "cascada", "tipo": "Agua", "poder_base": 50},
+    {"nombre": "acua_jet", "tipo": "Agua", "poder_base": 40},
+    {"nombre": "rayo_burbuja", "tipo": "Agua", "poder_base": 30}
   ],
-  "planta": [
-    {"nombre": "latigo_cepa", "tipo": "planta","poder_base": 35},
-    {"nombre": "hoja_afilada","tipo": "planta","poder_base": 50},
-    {"nombre": "rayo_solar",  "tipo": "planta","poder_base": 60}
+
+  "Planta": [
+    {"nombre": "latigo_cepa", "tipo": "Planta", "poder_base": 35},
+    {"nombre": "hoja_afilada", "tipo": "Planta", "poder_base": 50},
+    {"nombre": "rayo_solar", "tipo": "Planta", "poder_base": 60},
+    {"nombre": "drenadoras", "tipo": "Planta", "poder_base": 30},
+    {"nombre": "bomba_germen", "tipo": "Planta", "poder_base": 45},
+    {"nombre": "energia_bola", "tipo": "Planta", "poder_base": 50}
   ],
-  "electrico": [
-    {"nombre": "impactrueno", "tipo": "electrico", "poder_base": 35},
-    {"nombre": "rayo",        "tipo": "electrico", "poder_base": 55},
-    {"nombre": "trueno",      "tipo": "electrico", "poder_base": 65}
+
+  "Electrico": [
+    {"nombre": "impactrueno", "tipo": "Electrico", "poder_base": 35},
+    {"nombre": "rayo", "tipo": "Electrico", "poder_base": 55},
+    {"nombre": "trueno", "tipo": "Electrico", "poder_base": 65},
+    {"nombre": "chispa", "tipo": "Electrico", "poder_base": 40},
+    {"nombre": "electrobola", "tipo": "Electrico", "poder_base": 50},
+    {"nombre": "voltio_cruel", "tipo": "Electrico", "poder_base": 60}
   ],
-  "roca": [
-    {"nombre": "lanzarrocas", "tipo": "roca",  "poder_base": 30},
-    {"nombre": "avalancha",   "tipo": "roca",  "poder_base": 50},
-    {"nombre": "roca_afilada","tipo": "roca",  "poder_base": 40}
+
+  "Roca": [
+    {"nombre": "lanzarrocas", "tipo": "Roca", "poder_base": 30},
+    {"nombre": "avalancha", "tipo": "Roca", "poder_base": 50},
+    {"nombre": "roca_afilada", "tipo": "Roca", "poder_base": 40},
+    {"nombre": "tumba_rocas", "tipo": "Roca", "poder_base": 35},
+    {"nombre": "pedrada", "tipo": "Roca", "poder_base": 45},
+    {"nombre": "poder_pasado", "tipo": "Roca", "poder_base": 55}
   ],
-  "tierra": [
-    {"nombre": "terremoto",   "tipo": "tierra","poder_base": 60},
-    {"nombre": "excavar",     "tipo": "tierra","poder_base": 45},
-    {"nombre": "arena_tumba", "tipo": "tierra","poder_base": 30}
+
+  "Tierra": [
+    {"nombre": "terremoto", "tipo": "Tierra", "poder_base": 60},
+    {"nombre": "excavar", "tipo": "Tierra", "poder_base": 45},
+    {"nombre": "arena_tumba", "tipo": "Tierra", "poder_base": 30},
+    {"nombre": "tierra_viva", "tipo": "Tierra", "poder_base": 50},
+    {"nombre": "hueso_palo", "tipo": "Tierra", "poder_base": 40},
+    {"nombre": "fuerza_telur", "tipo": "Tierra", "poder_base": 55}
   ],
-  "hielo": [
-    {"nombre": "viento_hielo","tipo": "hielo", "poder_base": 35},
-    {"nombre": "ventisca",    "tipo": "hielo", "poder_base": 55},
-    {"nombre": "rayo_hielo",  "tipo": "hielo", "poder_base": 50}
+
+  "Hielo": [
+    {"nombre": "viento_hielo", "tipo": "Hielo", "poder_base": 35},
+    {"nombre": "ventisca", "tipo": "Hielo", "poder_base": 55},
+    {"nombre": "rayo_hielo", "tipo": "Hielo", "poder_base": 50},
+    {"nombre": "colmillo_hielo", "tipo": "Hielo", "poder_base": 45},
+    {"nombre": "polvo_hielo", "tipo": "Hielo", "poder_base": 30},
+    {"nombre": "canto_helado", "tipo": "Hielo", "poder_base": 40}
   ],
-  "bicho": [
-    {"nombre": "picadura",    "tipo": "bicho", "poder_base": 30},
-    {"nombre": "zumbido",     "tipo": "bicho", "poder_base": 25},
-    {"nombre": "tijera_x",    "tipo": "bicho", "poder_base": 50}
+
+  "Bicho": [
+    {"nombre": "picadura", "tipo": "Bicho", "poder_base": 30},
+    {"nombre": "zumbido", "tipo": "Bicho", "poder_base": 25},
+    {"nombre": "tijera_x", "tipo": "Bicho", "poder_base": 50},
+    {"nombre": "megacuerno", "tipo": "Bicho", "poder_base": 60},
+    {"nombre": "pin_misil", "tipo": "Bicho", "poder_base": 45},
+    {"nombre": "acoso", "tipo": "Bicho", "poder_base": 35}
   ],
-  "volador": [
-    {"nombre": "tornado",     "tipo": "volador","poder_base": 40},
-    {"nombre": "ataque_ala",  "tipo": "volador","poder_base": 35},
-    {"nombre": "tajo_aereo",  "tipo": "volador","poder_base": 55}
+
+  "Volador": [
+    {"nombre": "tornado", "tipo": "Volador", "poder_base": 40},
+    {"nombre": "ataque_ala", "tipo": "Volador", "poder_base": 35},
+    {"nombre": "tajo_aereo", "tipo": "Volador", "poder_base": 55},
+    {"nombre": "vuelo", "tipo": "Volador", "poder_base": 50},
+    {"nombre": "picotazo", "tipo": "Volador", "poder_base": 30},
+    {"nombre": "acrobata", "tipo": "Volador", "poder_base": 45}
   ],
-  "normal": [
-    {"nombre": "placaje",     "tipo": "normal","poder_base": 35},
-    {"nombre": "ataque_rapido","tipo":"normal","poder_base": 40},
-    {"nombre": "golpe_cuerpo","tipo": "normal","poder_base": 50}
+
+  "Normal": [
+    {"nombre": "placaje", "tipo": "Normal", "poder_base": 35},
+    {"nombre": "ataque_rapido", "tipo": "Normal", "poder_base": 40},
+    {"nombre": "golpe_cuerpo", "tipo": "Normal", "poder_base": 50},
+    {"nombre": "rapidez", "tipo": "Normal", "poder_base": 45},
+    {"nombre": "corte", "tipo": "Normal", "poder_base": 40},
+    {"nombre": "destructor", "tipo": "Normal", "poder_base": 55}
   ]
 }
