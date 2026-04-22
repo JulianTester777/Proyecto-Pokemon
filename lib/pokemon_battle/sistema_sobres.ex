@@ -10,24 +10,22 @@ defmodule PokemonBattle.SistemaSobres do
 
     Enum.map(1..3, fn _ ->
       especie_id = Enum.random(especies)
-      datos = pokemon_base[especie_id]
+      datos      = pokemon_base[especie_id]
+      tipos      = datos["tipos"]
+      rareza     = sortear_rareza(probabilidades)
 
-      tipos = datos["tipos"]
-      rareza = sortear_rareza(probabilidades)
+      pkm = Pokemon.crear_instancia(especie_id, datos, entrenador_nombre, rareza)
+      pkm_con_tipos = Map.put(pkm, :tipos, tipos)
 
-      pkm =
-        Pokemon.crear_instancia(especie_id, datos, entrenador_nombre, rareza)
-
-      asignar_movimientos(pkm, tipos, pool_movimientos)
+      asignar_movimientos(pkm_con_tipos, tipos, pool_movimientos)
     end)
   end
 
   @doc """
-  Sortea la rareza según probabilidades.
+  Sortea rareza según probabilidades del tipo de sobre.
   """
   def sortear_rareza(probabilidades) do
-    n = :rand.uniform(100)
-
+    n     = :rand.uniform(100)
     comun = probabilidades["comun"]
     raro  = comun + probabilidades["raro"]
 
@@ -39,44 +37,43 @@ defmodule PokemonBattle.SistemaSobres do
   end
 
   @doc """
-  Asigna 4 movimientos cumpliendo TODAS las reglas del enunciado.
+  Asigna 4 movimientos cumpliendo todas las reglas del enunciado.
   """
   defp asignar_movimientos(pkm, tipos, pool) do
-    # 🔹 Paso 1: movimientos obligatorios por tipo
+    # Paso 1: movimientos obligatorios por tipo
     movs_tipo =
       case tipos do
         [tipo] ->
+          # 1 tipo: tomar 2 movimientos de ese tipo
           pool
           |> Map.get(tipo, [])
           |> Enum.shuffle()
           |> Enum.take(2)
 
         [t1, t2] ->
-          m1 = Enum.random(Map.get(pool, t1, []))
-          m2 = Enum.random(Map.get(pool, t2, []))
-          [m1, m2]
+          # 2 tipos: tomar 1 de cada tipo (fix: Enum.take en vez de Enum.random)
+          m1 = pool |> Map.get(t1, []) |> Enum.shuffle() |> Enum.take(1)
+          m2 = pool |> Map.get(t2, []) |> Enum.shuffle() |> Enum.take(1)
+          m1 ++ m2
+
+        _ ->
+          []
       end
 
-    # 🔹 Paso 2: pool global
-    pool_global =
-      pool
-      |> Map.values()
-      |> List.flatten()
+    # Paso 2: pool global aplanado
+    pool_global = pool |> Map.values() |> List.flatten()
 
-    # 🔹 Paso 3: evitar repetidos
-    usados = MapSet.new(movs_tipo)
+    # Paso 3: evitar repetidos comparando por nombre (fix: MapSet de nombres)
+    usados = MapSet.new(movs_tipo, fn m -> m["nombre"] end)
 
     disponibles =
       pool_global
-      |> Enum.reject(fn m -> MapSet.member?(usados, m) end)
-
-    # 🔹 Paso 4: completar hasta 4
-    faltantes = 4 - length(movs_tipo)
-
-    movs_extra =
-      disponibles
+      |> Enum.reject(fn m -> MapSet.member?(usados, m["nombre"]) end)
       |> Enum.shuffle()
-      |> Enum.take(faltantes)
+
+    # Paso 4: completar hasta exactamente 4
+    faltantes  = 4 - length(movs_tipo)
+    movs_extra = Enum.take(disponibles, faltantes)
 
     movimientos_finales = movs_tipo ++ movs_extra
 
