@@ -32,41 +32,48 @@ defmodule PokemonBattle.SistemaSobres do
     end
   end
 
-  # 🎯 MOVIMIENTOS CORRECTOS SEGÚN REGLAS
   defp asignar_movimientos(tipos, pool) do
-    tipos = Enum.map(tipos, &String.downcase/1)
+  tipos = Enum.map(tipos, &String.downcase/1)
 
-    # Regla 1: mínimo por tipo
-    movs_tipo =
-      tipos
-      |> Enum.flat_map(fn t -> Map.get(pool, t, []) end)
+  # 🔹 Regla 1: asegurar movimientos del tipo
+  movs_tipo =
+    tipos
+    |> Enum.flat_map(fn t -> Map.get(pool, t, []) end)
 
-    elegidos_tipo =
-      if length(tipos) == 2 do
-        Enum.map(tipos, fn t ->
-          pool[t] |> Enum.random()
-        end)
-      else
+  elegidos_tipo =
+    case tipos do
+      [t1, t2] ->
+        # mínimo 1 de cada tipo
+        [
+          Enum.random(Map.get(pool, t1, [])),
+          Enum.random(Map.get(pool, t2, []))
+        ]
+
+      [_] ->
+        # mínimo 2 del mismo tipo
         Enum.take_random(movs_tipo, 2)
-      end
+    end
 
-    # Regla 2: completar hasta 4
-    resto =
-      pool
-      |> Map.values()
-      |> List.flatten()
-      |> Enum.reject(fn m -> m in elegidos_tipo end)
-      |> Enum.take_random(4 - length(elegidos_tipo))
+  # 🔹 Regla 2: completar con cualquiera
+  todos =
+    pool
+    |> Map.values()
+    |> List.flatten()
 
-    (elegidos_tipo ++ resto)
-    |> Enum.uniq_by(& &1["nombre"])
-    |> Enum.take(4)
-    |> Enum.map(fn m ->
-      %Movimiento{
-        nombre: m["nombre"],
-        tipo: m["tipo"],
-        poder_base: m["poder_base"]
-      }
-    end)
-  end
+  restantes =
+    todos
+    |> Enum.reject(fn m -> Enum.any?(elegidos_tipo, &(&1["nombre"] == m["nombre"])) end)
+    |> Enum.take_random(4 - length(elegidos_tipo))
+
+  (elegidos_tipo ++ restantes)
+  |> Enum.uniq_by(& &1["nombre"])
+  |> Enum.take(4)
+  |> Enum.map(fn m ->
+    %PokemonBattle.Movimiento{
+      nombre: m["nombre"],
+      tipo: m["tipo"],
+      poder_base: m["poder_base"]
+    }
+  end)
+end
 end

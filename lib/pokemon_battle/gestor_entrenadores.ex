@@ -59,19 +59,36 @@ defmodule PokemonBattle.GestorEntrenadores do
   # INVENTARIO (básico)
 
   def inventario(entrenador) do
-    IO.puts("\n=== Inventario de #{entrenador.nombre} ===")
+  coleccion = entrenador.coleccion
 
-    if entrenador.coleccion == [] do
-      IO.puts("Vacío")
-    else
-      entrenador.coleccion
-      |> Enum.with_index(1)
-      |> Enum.each(fn {p, i} ->
-        IO.puts("#{i}. #{p["especie"]} (#{p["rareza"]})")
-      end)
-    end
+  IO.puts("\n=== Inventario de #{entrenador.nombre} (#{length(coleccion)} Pokémon) ===")
+
+  if coleccion == [] do
+    IO.puts("Tu colección está vacía.")
+  else
+    coleccion
+    |> Enum.with_index(1)
+    |> Enum.each(fn {p, i} ->
+      tipos =
+        (p["tipos"] || [])
+        |> Enum.map(&String.capitalize/1)
+        |> Enum.join("/")
+
+      movs =
+        p["movimientos"]
+        |> Enum.map(fn m -> "#{m["nombre"]}(#{m["poder_base"]})" end)
+        |> Enum.join(", ")
+
+      IO.puts("""
+
+  #{i}. [##{p["id"]}] #{String.capitalize(p["especie"])} (#{tipos}) [#{p["rareza"]}]
+     Ataque: #{p["ataque"]} | Defensa: #{p["defensa"]} | Velocidad: #{p["velocidad"]} | Salud máx: 100
+     Dueño original: #{p["dueño_original"]}
+     Movimientos: #{movs}
+      """)
+    end)
   end
-
+end
   # GUARDAR
 
   def guardar_entrenador(e) do
