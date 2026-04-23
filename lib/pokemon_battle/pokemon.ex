@@ -16,9 +16,9 @@ defmodule PokemonBattle.Pokemon do
   def crear_instancia(especie_id, datos, entrenador, rareza) do
     {min, max} =
       case rareza do
-        "comun" -> {2, 8}
-        "raro"  -> {10, 20}
-        "epico" -> {25, 40}
+        :comun -> {2, 8}
+        :raro  -> {10, 20}
+        :epico -> {25, 40}
       end
 
     factor = Enum.random(min..max) / 100
@@ -31,8 +31,7 @@ defmodule PokemonBattle.Pokemon do
       ataque: round(datos["ataque_base"] * (1 + factor)),
       defensa: round(datos["defensa_base"] * (1 + factor)),
       velocidad: round(datos["velocidad_base"] * (1 + factor)),
-      movimientos: [],
-      salud_actual: 100
+      movimientos: []
     }
   end
 end

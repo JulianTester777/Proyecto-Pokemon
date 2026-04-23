@@ -1,60 +1,64 @@
 defmodule PokemonBattle.SistemaSobres do
-  alias PokemonBattle.{Pokemon, Movimiento, Persistencia}
+  alias PokemonBattle.{Pokemon, Movimiento}
 
-  def abrir_sobre(entrenador, tipo, pokes, movs, tienda) do
+  def abrir_sobre(entrenador, tipo, pokes_base, moves_base, tienda) do
     Enum.map(1..3, fn _ ->
-      generar_pokemon(entrenador, pokes, movs)
+      especie = Enum.random(pokes_base)
+      rareza = sortear_rareza(tipo, tienda)
+
+      pkm =
+        Pokemon.crear_instancia(
+          especie["especie"],
+          especie,
+          entrenador,
+          String.to_atom(rareza)
+        )
+
+      movimientos = asignar_movimientos(especie["tipos"], moves_base)
+
+      %{pkm | movimientos: movimientos}
     end)
   end
 
-  def generar_pokemon(entrenador_nombre, especies, moves) do
-    especie = Enum.random(especies)
-    rareza = random_rareza()
-
-    pkm =
-      Pokemon.crear_instancia(
-        especie["especie"],
-        especie,
-        entrenador_nombre,
-        rareza
-      )
-
-    movimientos = generar_movimientos(especie["tipos"], moves)
-
-    %{pkm | movimientos: movimientos}
-  end
-
-  defp random_rareza do
-    r = :rand.uniform()
+  # 🎯 PROBABILIDADES REALES
+  defp sortear_rareza(tipo, tienda) do
+    probs = tienda[tipo]["probabilidades"]
+    r = :rand.uniform(100)
 
     cond do
-      r <= 0.7 -> "comun"
-      r <= 0.95 -> "raro"
+      r <= probs["comun"] -> "comun"
+      r <= probs["comun"] + probs["raro"] -> "raro"
       true -> "epico"
     end
   end
 
-  defp generar_movimientos(tipos, pool) do
+  # 🎯 MOVIMIENTOS CORRECTOS SEGÚN REGLAS
+  defp asignar_movimientos(tipos, pool) do
+    tipos = Enum.map(tipos, &String.downcase/1)
+
+    # Regla 1: mínimo por tipo
     movs_tipo =
       tipos
-      |> Enum.flat_map(&Map.get(pool, &1, []))
+      |> Enum.flat_map(fn t -> Map.get(pool, t, []) end)
 
-    obligatorios =
-      case tipos do
-        [t1, t2] ->
-          [Enum.random(Map.get(pool, t1)), Enum.random(Map.get(pool, t2))]
-
-        [t] ->
-          Enum.take_random(Map.get(pool, t), 2)
+    elegidos_tipo =
+      if length(tipos) == 2 do
+        Enum.map(tipos, fn t ->
+          pool[t] |> Enum.random()
+        end)
+      else
+        Enum.take_random(movs_tipo, 2)
       end
 
-    extras =
+    # Regla 2: completar hasta 4
+    resto =
       pool
       |> Map.values()
       |> List.flatten()
-      |> Enum.take_random(2)
+      |> Enum.reject(fn m -> m in elegidos_tipo end)
+      |> Enum.take_random(4 - length(elegidos_tipo))
 
-    (obligatorios ++ extras)
+    (elegidos_tipo ++ resto)
     |> Enum.uniq_by(& &1["nombre"])
     |> Enum.take(4)
     |> Enum.map(fn m ->

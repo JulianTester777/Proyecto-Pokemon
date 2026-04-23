@@ -32,7 +32,8 @@ defmodule PokemonBattle.MotorCombate do
   end
 
   defp fuerte?(tipo1, tipo2) do
-    Map.get(@tabla, tipo1, []) |> Enum.member?(tipo2)
+  Map.get(@tabla, String.downcase(tipo1), [])
+  |> Enum.member?(String.downcase(tipo2))
   end
 
   defp calcular_stab(tipo_mov, tipos_atacante) do

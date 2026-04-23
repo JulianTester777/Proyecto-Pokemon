@@ -60,7 +60,7 @@ defmodule PokemonBattle.Servidor do
         bucle_principal(entrenador, pokes, movs, tienda)
 
       ["abrir_sobre"] ->
-        entrenador = abrir_sobre(entrenador)
+        entrenador = abrir_sobre(entrenador, pokes, movs, tienda)
         bucle_principal(entrenador, pokes, movs, tienda)
 
       ["salir"] ->
@@ -115,9 +115,8 @@ defmodule PokemonBattle.Servidor do
     end
   end
 
-  # ABRIR SOBRE (SIMPLIFICADO Y CORRECTO)
 
-  defp abrir_sobre(entrenador) do
+  defp abrir_sobre(entrenador, pokes, movs, tienda) do
     case entrenador.sobres_pendientes do
       [] ->
         IO.puts("No tienes sobres")
@@ -125,11 +124,15 @@ defmodule PokemonBattle.Servidor do
 
       [sobre | resto] ->
         nuevos =
-          Enum.map(1..3, fn _ ->
-            SistemaSobres.generar_pokemon(entrenador.nombre)
-          end)
+          SistemaSobres.abrir_sobre(
+            entrenador.nombre,
+            sobre["tipo"],
+            pokes,
+            movs,
+            tienda
+          )
 
-        IO.puts("\n¡Obtuviste!")
+        IO.puts("\n¡Sobre abierto! Obtuviste:")
 
         Enum.each(nuevos, fn p ->
           IO.puts("#{p.especie} (#{p.rareza})")
@@ -140,11 +143,11 @@ defmodule PokemonBattle.Servidor do
             %{
               "id" => p.id,
               "especie" => p.especie,
-              "rareza" => p.rareza,
+              "rareza" => to_string(p.rareza),
               "ataque" => p.ataque,
               "defensa" => p.defensa,
               "velocidad" => p.velocidad,
-              "movimientos" => p.movimientos,
+              "movimientos" => Enum.map(p.movimientos, &Map.from_struct/1),
               "dueño_original" => p.dueño_original
             }
           end)
