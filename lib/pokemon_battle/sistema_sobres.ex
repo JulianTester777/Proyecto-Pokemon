@@ -1,82 +1,68 @@
 defmodule PokemonBattle.SistemaSobres do
-  alias PokemonBattle.Pokemon
+  alias PokemonBattle.{Pokemon, Movimiento, Persistencia}
 
-  @doc """
-  Abre un sobre y genera 3 Pokémon con movimientos válidos.
-  """
-  def abrir_sobre(entrenador_nombre, tipo_sobre, pokemon_base, pool_movimientos, tienda) do
-    probabilidades = tienda[tipo_sobre]["probabilidades"]
-    especies = Map.keys(pokemon_base)
-
+  def abrir_sobre(entrenador, tipo, pokes, movs, tienda) do
     Enum.map(1..3, fn _ ->
-      especie_id = Enum.random(especies)
-      datos      = pokemon_base[especie_id]
-      tipos      = datos["tipos"]
-      rareza     = sortear_rareza(probabilidades)
-
-      pkm = Pokemon.crear_instancia(especie_id, datos, entrenador_nombre, rareza)
-      pkm_con_tipos = Map.put(pkm, :tipos, tipos)
-
-      asignar_movimientos(pkm_con_tipos, tipos, pool_movimientos)
+      generar_pokemon(entrenador, pokes, movs)
     end)
   end
 
-  @doc """
-  Sortea rareza según probabilidades del tipo de sobre.
-  """
-  def sortear_rareza(probabilidades) do
-    n     = :rand.uniform(100)
-    comun = probabilidades["comun"]
-    raro  = comun + probabilidades["raro"]
+  def generar_pokemon(entrenador_nombre, especies, moves) do
+    especie = Enum.random(especies)
+    rareza = random_rareza()
+
+    pkm =
+      Pokemon.crear_instancia(
+        especie["especie"],
+        especie,
+        entrenador_nombre,
+        rareza
+      )
+
+    movimientos = generar_movimientos(especie["tipos"], moves)
+
+    %{pkm | movimientos: movimientos}
+  end
+
+  defp random_rareza do
+    r = :rand.uniform()
 
     cond do
-      n <= comun -> :comun
-      n <= raro  -> :raro
-      true       -> :epico
+      r <= 0.7 -> "comun"
+      r <= 0.95 -> "raro"
+      true -> "epico"
     end
   end
 
-  @doc """
-  Asigna 4 movimientos cumpliendo todas las reglas del enunciado.
-  """
-  defp asignar_movimientos(pkm, tipos, pool) do
-    # Paso 1: movimientos obligatorios por tipo
+  defp generar_movimientos(tipos, pool) do
     movs_tipo =
+      tipos
+      |> Enum.flat_map(&Map.get(pool, &1, []))
+
+    obligatorios =
       case tipos do
-        [tipo] ->
-          # 1 tipo: tomar 2 movimientos de ese tipo
-          pool
-          |> Map.get(tipo, [])
-          |> Enum.shuffle()
-          |> Enum.take(2)
-
         [t1, t2] ->
-          # 2 tipos: tomar 1 de cada tipo (fix: Enum.take en vez de Enum.random)
-          m1 = pool |> Map.get(t1, []) |> Enum.shuffle() |> Enum.take(1)
-          m2 = pool |> Map.get(t2, []) |> Enum.shuffle() |> Enum.take(1)
-          m1 ++ m2
+          [Enum.random(Map.get(pool, t1)), Enum.random(Map.get(pool, t2))]
 
-        _ ->
-          []
+        [t] ->
+          Enum.take_random(Map.get(pool, t), 2)
       end
 
-    # Paso 2: pool global aplanado
-    pool_global = pool |> Map.values() |> List.flatten()
+    extras =
+      pool
+      |> Map.values()
+      |> List.flatten()
+      |> Enum.take_random(2)
 
-    # Paso 3: evitar repetidos comparando por nombre (fix: MapSet de nombres)
-    usados = MapSet.new(movs_tipo, fn m -> m["nombre"] end)
-
-    disponibles =
-      pool_global
-      |> Enum.reject(fn m -> MapSet.member?(usados, m["nombre"]) end)
-      |> Enum.shuffle()
-
-    # Paso 4: completar hasta exactamente 4
-    faltantes  = 4 - length(movs_tipo)
-    movs_extra = Enum.take(disponibles, faltantes)
-
-    movimientos_finales = movs_tipo ++ movs_extra
-
-    %{pkm | movimientos: movimientos_finales}
+    (obligatorios ++ extras)
+    |> Enum.uniq_by(& &1["nombre"])
+    |> Enum.take(4)
+    |> Enum.map(fn m ->
+      %Movimiento{
+        nombre: m["nombre"],
+        tipo: m["tipo"],
+        poder_base: m["poder_base"]
+      }
+    end)
   end
 end

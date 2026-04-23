@@ -1,9 +1,20 @@
 defmodule PokemonBattle.Persistencia do
   def cargar_datos(ruta) do
-    if File.exists?(ruta) do
-      File.read!(ruta) |> Jason.decode!()
-    else
-      {:error, "Archivo no encontrado"}
+    case File.read(ruta) do
+      {:ok, contenido} ->
+        case Jason.decode(contenido) do
+          {:ok, data} -> data
+          _ -> []
+        end
+
+      _ -> []
+    end
+  end
+
+  def guardar_datos(ruta, data) do
+    case Jason.encode(data, pretty: true) do
+      {:ok, json} -> File.write!(ruta, json)
+      _ -> :error
     end
   end
 end

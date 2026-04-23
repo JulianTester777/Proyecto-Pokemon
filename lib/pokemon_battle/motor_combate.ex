@@ -1,86 +1,41 @@
 defmodule PokemonBattle.MotorCombate do
-  @moduledoc """
-  Lógica de cálculo de daño, efectividad de tipos y STAB.
-  """
-
-  # Tabla de efectividad: {tipo_movimiento, tipo_defensor} => modificador
-  @efectividad %{
-    {"fuego",     "planta"}    => 2.0,
-    {"fuego",     "hielo"}     => 2.0,
-    {"fuego",     "bicho"}     => 2.0,
-    {"agua",      "fuego"}     => 2.0,
-    {"agua",      "roca"}      => 2.0,
-    {"agua",      "tierra"}    => 2.0,
-    {"planta",    "agua"}      => 2.0,
-    {"planta",    "roca"}      => 2.0,
-    {"planta",    "tierra"}    => 2.0,
-    {"electrico", "agua"}      => 2.0,
-    {"electrico", "volador"}   => 2.0,
-    {"roca",      "fuego"}     => 2.0,
-    {"roca",      "hielo"}     => 2.0,
-    {"roca",      "volador"}   => 2.0,
-    {"roca",      "bicho"}     => 2.0,
-    # Debilidades inversas (x0.5)
-    {"planta",    "fuego"}     => 0.5,
-    {"hielo",     "fuego"}     => 0.5,
-    {"bicho",     "fuego"}     => 0.5,
-    {"fuego",     "agua"}      => 0.5,
-    {"roca",      "agua"}      => 0.5,
-    {"tierra",    "agua"}      => 0.5,
-    {"agua",      "planta"}    => 0.5,
-    {"roca",      "planta"}    => 0.5,
-    {"tierra",    "planta"}    => 0.5,
-    {"agua",      "electrico"} => 0.5,
-    {"volador",   "electrico"} => 0.5,
-    {"fuego",     "roca"}      => 0.5,
-    {"hielo",     "roca"}      => 0.5,
-    {"volador",   "roca"}      => 0.5,
-    {"bicho",     "roca"}      => 0.5
+  @tabla %{
+    "fuego" => ["planta", "hielo", "bicho"],
+    "agua" => ["fuego", "roca", "tierra"],
+    "planta" => ["agua", "roca", "tierra"],
+    "electrico" => ["agua", "volador"],
+    "roca" => ["fuego", "hielo", "volador", "bicho"]
   }
 
-  @doc """
-  Calcula el daño de un movimiento sobre un defensor.
-  Recibe la especie del atacante para calcular STAB.
-  """
-  def calcular_danio(atacante, movimiento, tipos_defensor, tipos_atacante) do
-    poder     = movimiento["poder_base"]
-    tipo_mov  = movimiento["tipo"]
+  def calcular_daño(atacante, defensor, movimiento, tipos_atacante, tipos_defensor) do
+    poder = movimiento.poder_base
 
-    modificador_tipo = calcular_modificador_tipo(tipo_mov, tipos_defensor)
-    stab             = calcular_stab(tipo_mov, tipos_atacante)
+    daño_base =
+      trunc((poder * (atacante.ataque / defensor.defensa)) / 5 + 2)
 
-    round(atacante.ataque * poder * modificador_tipo * stab / 100)
+    efectividad = calcular_efectividad(movimiento.tipo, tipos_defensor)
+    stab = calcular_stab(movimiento.tipo, tipos_atacante)
+    random = :rand.uniform() * (1.0 - 0.85) + 0.85
+
+    trunc(daño_base * efectividad * stab * random)
+    |> max(1)
   end
 
-  @doc """
-  Calcula el modificador de efectividad de tipo.
-  Si el defensor tiene 2 tipos, multiplica ambos modificadores.
-  """
-  def calcular_modificador_tipo(tipo_movimiento, tipos_defensor) do
-    Enum.reduce(tipos_defensor, 1.0, fn tipo_def, acc ->
-      modificador = Map.get(@efectividad, {tipo_movimiento, tipo_def}, 1.0)
-      acc * modificador
+  defp calcular_efectividad(tipo_mov, tipos_def) do
+    Enum.reduce(tipos_def, 1.0, fn tipo_def, acc ->
+      cond do
+        fuerte?(tipo_mov, tipo_def) -> acc * 2.0
+        fuerte?(tipo_def, tipo_mov) -> acc * 0.5
+        true -> acc
+      end
     end)
   end
 
-  @doc """
-  STAB: x1.5 si el tipo del movimiento coincide con algún tipo del atacante.
-  """
-  def calcular_stab(tipo_movimiento, tipos_atacante) do
-    if tipo_movimiento in tipos_atacante, do: 1.5, else: 1.0
+  defp fuerte?(tipo1, tipo2) do
+    Map.get(@tabla, tipo1, []) |> Enum.member?(tipo2)
   end
 
-  @doc """
-  Describe con texto la efectividad para mostrar en pantalla.
-  """
-  def describir_efectividad(modificador) do
-    cond do
-      modificador >= 4.0 -> "¡Es muy efectivo!!"
-      modificador >= 2.0 -> "¡Es muy efectivo!"
-      modificador == 1.0 -> ""
-      modificador <= 0.25 -> "No es muy efectivo..."
-      modificador < 1.0  -> "No es muy efectivo..."
-      true -> ""
-    end
+  defp calcular_stab(tipo_mov, tipos_atacante) do
+    if tipo_mov in tipos_atacante, do: 1.5, else: 1.0
   end
 end
