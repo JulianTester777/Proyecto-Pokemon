@@ -17,4 +17,19 @@ defmodule PokemonBattle.Persistencia do
       _ -> :error
     end
   end
+
+  def cargar_especies(ruta) do
+    cargar_datos(ruta)
+    |> Enum.map(fn e ->
+      %PokemonBattle.Especie{
+        especie: e["especie"],
+        tipos: e["tipos"],
+        ataque_base: e["ataque_base"],
+        defensa_base: e["defensa_base"],
+        velocidad_base: e["velocidad_base"]
+      }
+    end)
+  end
+
+
 end

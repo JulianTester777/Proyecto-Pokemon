@@ -2,39 +2,39 @@ defmodule PokemonBattle.Servidor do
   alias PokemonBattle.{GestorEntrenadores, Persistencia, SistemaSobres}
 
   def iniciar do
-    pokes_base = Persistencia.cargar_datos("data/pokemon.json")
     movs_base  = Persistencia.cargar_datos("data/moves.json")
     tienda     = Persistencia.cargar_datos("data/tienda.json")
+    especies = Persistencia.cargar_especies("data/pokemon.json")
 
     IO.puts("==================================")
     IO.puts("   BIENVENIDO A POKÉMON BATTLE    ")
     IO.puts("==================================")
 
-    bucle_login(pokes_base, movs_base, tienda)
+    bucle_login(especies, movs_base, tienda)
   end
 
   # LOGIN
 
-  defp bucle_login(pokes, movs, tienda) do
+  defp bucle_login(especies, movs, tienda) do
     comando = IO.gets("\n> ") |> String.trim()
 
     case String.split(comando) do
       ["iniciar", nombre] ->
         entrenador = GestorEntrenadores.iniciar_sesion(nombre)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["salir"] ->
         IO.puts("¡Hasta luego!")
 
       _ ->
         IO.puts("Usa: iniciar <usuario>")
-        bucle_login(pokes, movs, tienda)
+        bucle_login(especies, movs, tienda)
     end
   end
 
   # MENU PRINCIPAL
 
-  defp bucle_principal(entrenador, pokes, movs, tienda) do
+  defp bucle_principal(entrenador, especies, movs, tienda) do
     IO.puts("\nComandos:")
     IO.puts("perfil | inventario | tienda")
     IO.puts("comprar_sobre <tipo> | abrir_sobre")
@@ -45,23 +45,23 @@ defmodule PokemonBattle.Servidor do
     case String.split(comando) do
       ["perfil"] ->
         GestorEntrenadores.perfil(entrenador)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["inventario"] ->
-        GestorEntrenadores.inventario(entrenador)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        GestorEntrenadores.inventario(entrenador,especies)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["tienda"] ->
         mostrar_tienda(tienda)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["comprar_sobre", tipo] ->
         entrenador = comprar_sobre(entrenador, tipo, tienda)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["abrir_sobre"] ->
-        entrenador = abrir_sobre(entrenador, pokes, movs, tienda)
-        bucle_principal(entrenador, pokes, movs, tienda)
+        entrenador = abrir_sobre(entrenador, especies, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
 
       ["salir"] ->
         GestorEntrenadores.guardar_entrenador(entrenador)
@@ -69,7 +69,7 @@ defmodule PokemonBattle.Servidor do
 
       _ ->
         IO.puts("Comando no válido")
-        bucle_principal(entrenador, pokes, movs, tienda)
+        bucle_principal(entrenador, especies, movs, tienda)
     end
   end
 
@@ -116,50 +116,37 @@ defmodule PokemonBattle.Servidor do
   end
 
 
-  defp abrir_sobre(entrenador, pokes, movs, tienda) do
-    case entrenador.sobres_pendientes do
-      [] ->
-        IO.puts("No tienes sobres")
-        entrenador
+  defp abrir_sobre(entrenador, especies, movs, tienda) do
+  case entrenador.sobres_pendientes do
+    [] ->
+      IO.puts("No tienes sobres")
+      entrenador
 
-      [sobre | resto] ->
-        nuevos =
-          SistemaSobres.abrir_sobre(
-            entrenador.nombre,
-            sobre["tipo"],
-            pokes,
-            movs,
-            tienda
-          )
+    [sobre | resto] ->
+      nuevos =
+        PokemonBattle.SistemaSobres.abrir_sobre(
+          entrenador.nombre,
+          sobre["tipo"],
+          especies,
+          movs,
+          tienda
+        )
 
-        IO.puts("\n¡Sobre abierto! Obtuviste:")
+      IO.puts("\n¡Sobre abierto! Obtuviste:")
 
-        Enum.each(nuevos, fn p ->
-          IO.puts("#{p.especie} (#{p.rareza})")
-        end)
+      Enum.each(nuevos, fn p ->
+        IO.puts("#{p.especie} (#{p.rareza})")
+      end)
 
-        nuevos_maps =
-          Enum.map(nuevos, fn p ->
-            %{
-              "id" => p.id,
-              "especie" => p.especie,
-              "rareza" => to_string(p.rareza),
-              "ataque" => p.ataque,
-              "defensa" => p.defensa,
-              "velocidad" => p.velocidad,
-              "movimientos" => Enum.map(p.movimientos, &Map.from_struct/1),
-              "dueño_original" => p.dueño_original
-            }
-          end)
+     
+      actualizado = %{
+        entrenador |
+        coleccion: entrenador.coleccion ++ nuevos,
+        sobres_pendientes: resto
+      }
 
-        actualizado = %{
-          entrenador |
-          coleccion: entrenador.coleccion ++ nuevos_maps,
-          sobres_pendientes: resto
-        }
-
-        GestorEntrenadores.guardar_entrenador(actualizado)
-        actualizado
-    end
+      PokemonBattle.GestorEntrenadores.guardar_entrenador(actualizado)
+      actualizado
   end
+end
 end

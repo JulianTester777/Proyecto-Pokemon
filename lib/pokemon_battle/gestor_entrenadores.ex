@@ -3,8 +3,6 @@ defmodule PokemonBattle.GestorEntrenadores do
 
   @archivo "data/trainers.json"
 
-  # CARGAR
-
   def cargar_todos do
     Persistencia.cargar_datos(@archivo)
     |> Enum.map(&map_a_struct/1)
@@ -16,13 +14,31 @@ defmodule PokemonBattle.GestorEntrenadores do
       monedas: m["monedas"] || 0,
       monedas_acumuladas: m["monedas_acumuladas"] || 0,
       victorias: m["victorias"] || 0,
-      coleccion: m["coleccion"] || [],
+      coleccion: Enum.map(m["coleccion"] || [], &map_a_pokemon/1),
       sobres_pendientes: m["sobres_pendientes"] || [],
       equipos: m["equipos"] || []
     }
   end
 
-  # LOGIN
+  defp map_a_pokemon(m) do
+    %PokemonBattle.Pokemon{
+      id: m["id"],
+      especie: m["especie"],
+      rareza: String.to_atom(m["rareza"]),
+      ataque: m["ataque"],
+      defensa: m["defensa"],
+      velocidad: m["velocidad"],
+      dueño_original: m["dueño_original"],
+      movimientos:
+        Enum.map(m["movimientos"], fn mov ->
+          struct(PokemonBattle.Movimiento, mov)
+        end),
+      salud_actual: 100,
+      salud_maxima: 100
+    }
+  end
+
+  # -------- LOGIN --------
 
   def iniciar_sesion(nombre) do
     case Enum.find(cargar_todos(), &(&1.nombre == nombre)) do
@@ -47,7 +63,7 @@ defmodule PokemonBattle.GestorEntrenadores do
     end
   end
 
-  # ✅ PERFIL (ESTO ES LO QUE TE FALTABA BIEN)
+  # -------- PERFIL --------
 
   def perfil(entrenador) do
     IO.puts("\n=== Perfil de #{entrenador.nombre} ===")
@@ -56,48 +72,67 @@ defmodule PokemonBattle.GestorEntrenadores do
     IO.puts("Pokémon en inventario: #{length(entrenador.coleccion)}")
   end
 
-  # INVENTARIO (básico)
+  # -------- INVENTARIO --------
 
-  def inventario(entrenador) do
-  coleccion = entrenador.coleccion
+  def inventario(entrenador, especies) do
+    IO.puts("\n=== Inventario de #{entrenador.nombre} ===")
 
-  IO.puts("\n=== Inventario de #{entrenador.nombre} (#{length(coleccion)} Pokémon) ===")
+    Enum.each(entrenador.coleccion, fn p ->
+      especie = Enum.find(especies, &(&1.especie == p.especie))
 
-  if coleccion == [] do
-    IO.puts("Tu colección está vacía.")
-  else
-    coleccion
-    |> Enum.with_index(1)
-    |> Enum.each(fn {p, i} ->
       tipos =
-        (p["tipos"] || [])
+        especie.tipos
         |> Enum.map(&String.capitalize/1)
         |> Enum.join("/")
 
       movs =
-        p["movimientos"]
-        |> Enum.map(fn m -> "#{m["nombre"]}(#{m["poder_base"]})" end)
+        p.movimientos
+        |> Enum.map(fn m -> "#{m.nombre}(#{m.poder_base})" end)
         |> Enum.join(", ")
 
       IO.puts("""
-
-  #{i}. [##{p["id"]}] #{String.capitalize(p["especie"])} (#{tipos}) [#{p["rareza"]}]
-     Ataque: #{p["ataque"]} | Defensa: #{p["defensa"]} | Velocidad: #{p["velocidad"]} | Salud máx: 100
-     Dueño original: #{p["dueño_original"]}
-     Movimientos: #{movs}
+      [##{p.id}] #{String.capitalize(p.especie)} (#{tipos}) [#{p.rareza}]
+      Ataque: #{p.ataque} | Defensa: #{p.defensa} | Velocidad: #{p.velocidad}
+      Dueño: #{p.dueño_original}
+      Movimientos: #{movs}
       """)
     end)
   end
-end
-  # GUARDAR
+
+  # -------- GUARDAR --------
 
   def guardar_entrenador(e) do
     lista = cargar_todos()
 
     nueva =
       [e | Enum.reject(lista, &(&1.nombre == e.nombre))]
-      |> Enum.map(&Map.from_struct/1)
+      |> Enum.map(&entrenador_a_map/1)
 
     Persistencia.guardar_datos(@archivo, nueva)
+  end
+
+  defp entrenador_a_map(e) do
+    %{
+      "nombre" => e.nombre,
+      "monedas" => e.monedas,
+      "monedas_acumuladas" => e.monedas_acumuladas,
+      "victorias" => e.victorias,
+      "coleccion" => Enum.map(e.coleccion, &pokemon_a_map/1),
+      "sobres_pendientes" => e.sobres_pendientes,
+      "equipos" => e.equipos
+    }
+  end
+
+  defp pokemon_a_map(p) do
+    %{
+      "id" => p.id,
+      "especie" => p.especie,
+      "rareza" => to_string(p.rareza),
+      "ataque" => p.ataque,
+      "defensa" => p.defensa,
+      "velocidad" => p.velocidad,
+      "movimientos" => Enum.map(p.movimientos, &Map.from_struct/1),
+      "dueño_original" => p.dueño_original
+    }
   end
 end
