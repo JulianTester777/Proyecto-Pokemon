@@ -1,13 +1,147 @@
 [
   {
-    "nombre": "Julian",
+    "coleccion": [
+      {
+        "ataque": 54,
+        "defensa": 45,
+        "dueño_original": "luis",
+        "especie": "charmander",
+        "id": 36187,
+        "movimientos": [
+          {
+            "nombre": "llamarada",
+            "poder_base": 50,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "ascuas",
+            "poder_base": 30,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "arena_tumba",
+            "poder_base": 30,
+            "tipo": "tierra"
+          },
+          {
+            "nombre": "rayo",
+            "poder_base": 55,
+            "tipo": "electrico"
+          }
+        ],
+        "rareza": "comun",
+        "velocidad": 68
+      },
+      {
+        "ataque": 54,
+        "defensa": 44,
+        "dueño_original": "luis",
+        "especie": "charmander",
+        "id": 14256,
+        "movimientos": [
+          {
+            "nombre": "nitrocarga",
+            "poder_base": 30,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "lanzallamas",
+            "poder_base": 55,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "hoja_afilada",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "energia_bola",
+            "poder_base": 50,
+            "tipo": "planta"
+          }
+        ],
+        "rareza": "comun",
+        "velocidad": 67
+      },
+      {
+        "ataque": 54,
+        "defensa": 44,
+        "dueño_original": "luis",
+        "especie": "charmander",
+        "id": 64413,
+        "movimientos": [
+          {
+            "nombre": "giro_fuego",
+            "poder_base": 35,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "ascuas",
+            "poder_base": 30,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "cascada",
+            "poder_base": 50,
+            "tipo": "agua"
+          },
+          {
+            "nombre": "hoja_afilada",
+            "poder_base": 50,
+            "tipo": "planta"
+          }
+        ],
+        "rareza": "comun",
+        "velocidad": 67
+      }
+    ],
+    "equipos": [],
+    "monedas": 0,
+    "monedas_acumuladas": 0,
+    "nombre": "luis",
+    "sobres_pendientes": [],
+    "victorias": 0
+  },
+  {
+    "coleccion": [],
+    "equipos": [],
+    "monedas": 0,
+    "monedas_acumuladas": 0,
+    "nombre": "pedro",
+    "sobres_pendientes": [
+      {
+        "id": 39063,
+        "tipo": "basico"
+      }
+    ],
+    "victorias": 0
+  },
+  {
+    "coleccion": [],
+    "equipos": [],
+    "monedas": 0,
+    "monedas_acumuladas": 0,
+    "nombre": "ana",
+    "sobres_pendientes": [
+      {
+        "id": 82639,
+        "tipo": "basico"
+      }
+    ],
+    "victorias": 0
+  },
+  {
+    "coleccion": [],
+    "equipos": [],
     "monedas": 500,
     "monedas_acumuladas": 500,
-    "victorias": 0,
-    "coleccion": [],
+    "nombre": "Julian",
     "sobres_pendientes": [
-      { "id": 1, "tipo": "basico" }
-    ]
+      {
+        "id": 1,
+        "tipo": "basico"
+      }
+    ],
+    "victorias": 0
   }
 ]
-

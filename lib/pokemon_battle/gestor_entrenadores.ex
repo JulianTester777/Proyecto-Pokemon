@@ -135,4 +135,43 @@ defmodule PokemonBattle.GestorEntrenadores do
       "dueño_original" => p.dueño_original
     }
   end
+
+  # -------- INTERCAMBIO --------
+
+def intercambiar(nombre1, id1, nombre2, id2) do
+    lista = cargar_todos()
+
+    e1 = Enum.find(lista, &(&1.nombre == nombre1))
+    e2 = Enum.find(lista, &(&1.nombre == nombre2))
+
+    if e1 == nil or e2 == nil do
+      {:error, "Entrenador no encontrado"}
+    else
+      p1 = Enum.find(e1.coleccion, &(&1.id == id1))
+      p2 = Enum.find(e2.coleccion, &(&1.id == id2))
+
+      cond do
+        p1 == nil -> {:error, "Pokémon #{id1} no existe en #{nombre1}"}
+        p2 == nil -> {:error, "Pokémon #{id2} no existe en #{nombre2}"}
+
+        true ->
+          nuevo_e1 = %{
+            e1
+            | coleccion:
+                (e1.coleccion |> List.delete(p1)) ++ [p2]
+          }
+
+          nuevo_e2 = %{
+            e2
+            | coleccion:
+                (e2.coleccion |> List.delete(p2)) ++ [p1]
+          }
+
+          guardar_entrenador(nuevo_e1)
+          guardar_entrenador(nuevo_e2)
+
+          {:ok, "Intercambio realizado"}
+      end
+    end
+  end
 end
