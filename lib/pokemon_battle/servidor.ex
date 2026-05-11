@@ -40,7 +40,7 @@ defmodule PokemonBattle.Servidor do
 
   defp bucle_principal(entrenador, especies, movs, tienda, sala_actual) do
     IO.puts("\nComandos:")
-    IO.puts("perfil | inventario | tienda")
+    IO.puts("perfil | inventario | clasificacion | tienda")
     IO.puts("comprar_sobre <tipo> | abrir_sobre")
     IO.puts("crear_sala_intercambio | unirse_sala_intercambio <codigo>")
     IO.puts("ofrecer_pokemon <id> | confirmar_intercambio | cancelar_intercambio")
@@ -59,7 +59,19 @@ defmodule PokemonBattle.Servidor do
         GestorEntrenadores.inventario(entrenador, especies)
         bucle_principal(entrenador, especies, movs, tienda, sala_actual)
 
-      # -------- TIENDA --------
+      ["clasificacion"] ->
+        entrenadores = GestorEntrenadores.cargar_todos()
+        ordenados = Enum.sort_by(entrenadores, fn e ->
+          {-e.victorias, -e.monedas_acumuladas}
+       end)
+      IO.puts("\n=== Clasificación Global ===")
+      IO.puts("# | Entrenador | Victorias | Monedas acumuladas")
+      IO.puts(String.duplicate("-", 45))
+      Enum.with_index(ordenados, 1) |> Enum.each(fn {e, i} ->
+        IO.puts("#{i} | #{e.nombre} | #{e.victorias} | #{e.monedas_acumuladas}")
+      end)
+      bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        # -------- TIENDA --------
 
       ["tienda"] ->
         mostrar_tienda(tienda)
