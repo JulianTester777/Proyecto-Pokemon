@@ -4,6 +4,7 @@ defmodule PokemonBattle.Application do
   def start(_type, _args) do
     children = [
       {Registry, keys: :unique, name: PokemonBattle.Registry},
+      {PokemonBattle.ClusterTables, []},
       {PokemonBattle.SupervisorBatallas, []}
     ]
 
