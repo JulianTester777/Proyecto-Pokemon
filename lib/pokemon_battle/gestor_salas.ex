@@ -1,50 +1,86 @@
 defmodule PokemonBattle.GestorSalas do
-  alias PokemonBattle.{SupervisorBatallas, Intercambio}
-
-  # Generador simple de códigos tipo IC-123
-  defp generar_codigo do
-    "IC-" <> Integer.to_string(:rand.uniform(999))
-  end
-
-  # -------- CREAR SALA --------
+  alias PokemonBattle.{Cluster, Intercambio, SupervisorBatallas}
 
   def crear_sala_intercambio(usuario) do
-    codigo = generar_codigo()
+    cond do
+      Cluster.sala_intercambio_activa?(usuario) ->
+        {:error, "Ya tienes una sala activa"}
 
-    case SupervisorBatallas.crear_intercambio(codigo, usuario) do
-      {:ok, _pid} ->
-        {:ok, codigo}
+      true ->
+        codigo = generar_codigo()
 
-      {:error, _} ->
-        {:error, "No se pudo crear la sala"}
+        case SupervisorBatallas.crear_intercambio(codigo, usuario) do
+          {:ok, pid} ->
+            with :ok <- Cluster.registrar_sala_intercambio(codigo, Node.self()),
+                 :ok <- Cluster.registrar_miembro_intercambio(usuario, codigo) do
+              {:ok, codigo}
+            else
+              {:error, msg} ->
+                rollback_intercambio_creado(pid, codigo, usuario)
+                {:error, msg}
+            end
+
+          {:error, {:already_started, _pid}} ->
+            crear_sala_intercambio(usuario)
+
+          {:error, _} = error ->
+            error
+        end
     end
   end
-
-  # -------- UNIRSE --------
 
   def unirse_sala_intercambio(codigo, usuario) do
-    case Intercambio.unirse(codigo, usuario) do
-      {:ok, msg} -> {:ok, msg}
-      {:error, msg} -> {:error, msg}
+    cond do
+      Cluster.sala_intercambio_activa?(usuario) ->
+        {:error, "Ya tienes una sala activa"}
+
+      true ->
+        Intercambio.unirse(codigo, usuario)
     end
   end
-
-  # -------- OFRECER --------
 
   def ofrecer_pokemon(codigo, usuario, pokemon_id) do
     Intercambio.ofrecer(codigo, usuario, pokemon_id)
   end
 
-  # -------- CONFIRMAR --------
-
   def confirmar_intercambio(codigo, usuario) do
     Intercambio.confirmar(codigo, usuario)
   end
 
-  # -------- CANCELAR --------
-
   def cancelar_intercambio(codigo, usuario) do
     Intercambio.cancelar(codigo, usuario)
-    {:ok, "Intercambio cancelado"}
+  end
+
+  def sala_activa?(usuario) do
+    Cluster.sala_intercambio_activa?(usuario)
+  end
+
+  def codigo_de_sala(usuario) do
+    Cluster.codigo_de_sala_intercambio(usuario)
+  end
+
+  def registrar_sala(usuario, codigo) do
+    Cluster.registrar_miembro_intercambio(usuario, codigo)
+  end
+
+  def liberar_sala(usuario) do
+    Cluster.liberar_miembro_intercambio(usuario)
+  end
+
+  def salas_activas do
+    Cluster.codigos_sala_intercambio()
+    |> Enum.filter(&String.starts_with?(&1, "IC-"))
+  end
+
+  defp rollback_intercambio_creado(pid, codigo, usuario) do
+    _ = Cluster.liberar_sala_intercambio(codigo)
+    _ = Cluster.liberar_miembro_intercambio(usuario)
+    _ = DynamicSupervisor.terminate_child(PokemonBattle.SupervisorBatallas, pid)
+    {:error, "No se pudo registrar la sala de intercambio"}
+  end
+
+  defp generar_codigo do
+    node_tag = Node.self() |> Atom.to_string() |> Base.url_encode64(padding: false)
+    "IC-" <> node_tag <> "-" <> Integer.to_string(:erlang.unique_integer([:positive, :monotonic]))
   end
 end
