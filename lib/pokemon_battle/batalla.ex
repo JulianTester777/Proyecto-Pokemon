@@ -1,231 +1,464 @@
 defmodule PokemonBattle.Batalla do
   use GenServer
 
-  alias PokemonBattle.{MotorCombate, GestorEntrenadores}
+  alias PokemonBattle.{GestorEntrenadores, MotorCombate}
 
-  # --- API pública ---
+  def start_link({id, jugador1}), do: start_link({id, jugador1, []})
 
-  def start_link({id, jugador1}) do
-    GenServer.start_link(__MODULE__, {id, jugador1}, name: via(id))
+  def start_link({id, jugador1, opts}) do
+    try do
+      GenServer.start_link(__MODULE__, {id, jugador1, opts}, name: via(id))
+    catch
+      :exit, reason -> {:error, reason}
+    end
   end
 
-  def unirse(id, jugador2) do
-    GenServer.call(via(id), {:unirse, jugador2})
-  end
+  def unirse(id, jugador2), do: llamar_en_nodo(id, :unirse, [id, jugador2], {:unirse, jugador2})
 
-  def atacar(id, nombre, movimiento) do
-    GenServer.call(via(id), {:atacar, nombre, movimiento})
-  end
+  def atacar(id, nombre, movimiento),
+    do:
+      llamar_en_nodo(
+        id,
+        :atacar,
+        [id, nombre, movimiento],
+        {:accion, nombre, {:atacar, movimiento}}
+      )
 
-  def rendirse(id, nombre) do
-    GenServer.call(via(id), {:rendirse, nombre})
-  end
+  def cambiar(id, nombre, pokemon_id),
+    do:
+      llamar_en_nodo(
+        id,
+        :cambiar,
+        [id, nombre, pokemon_id],
+        {:accion, nombre, {:cambiar, pokemon_id}}
+      )
 
-  def estado(id) do
-    GenServer.call(via(id), :estado)
-  end
-
-  # --- Init ---
+  def pasar(id, nombre), do: llamar_en_nodo(id, :pasar, [id, nombre], {:accion, nombre, :pasar})
+  def rendirse(id, nombre), do: llamar_en_nodo(id, :rendirse, [id, nombre], {:rendirse, nombre})
+  def estado(id), do: llamar_en_nodo(id, :estado, [id], :estado)
 
   @impl true
-  def init({id, jugador1}) do
-    estado = %{
-      id:        id,
-      turno:     1,
-      inicio:    DateTime.utc_now(),
-      jugadores: %{
-        jugador1.nombre => %{
-          entrenador: jugador1,
-          activo:     hd(jugador1.coleccion),
-          equipo:     jugador1.coleccion,
-          accion:     nil
-        }
-      },
-      ganador: nil
-    }
-    IO.puts("⚔️  Batalla #{id} creada. Esperando segundo jugador...")
-    {:ok, estado}
-  end
+  def init({id, jugador1, opts}) do
+    case seleccionar_pokemon_usable(jugador1) do
+      {:ok, activo} ->
+        equipo = List.wrap(Map.get(jugador1, :coleccion, []))
+        tiempo_turno = normalizar_tiempo(Keyword.get(opts, :tiempo_turno, 20_000))
 
-  # --- Unirse ---
+        estado = %{
+          id: id,
+          turno: 1,
+          tiempo_turno: tiempo_turno,
+          timer_ref: nil,
+          inicio: DateTime.utc_now(),
+          jugadores: %{
+            jugador1.nombre => %{
+              entrenador: jugador1,
+              activo: activo,
+              equipo: equipo,
+              accion: nil
+            }
+          },
+          ganador: nil
+        }
+
+        IO.puts("⚔️  Batalla #{id} creada. Esperando segundo jugador...")
+        {:ok, estado}
+
+      {:error, reason} ->
+        {:stop, reason}
+    end
+  end
 
   @impl true
   def handle_call({:unirse, jugador2}, _from, estado) do
-    if map_size(estado.jugadores) >= 2 do
-      {:reply, {:error, "Sala llena"}, estado}
-    else
-      nuevo = %{
-        entrenador: jugador2,
-        activo:     hd(jugador2.coleccion),
-        equipo:     jugador2.coleccion,
-        accion:     nil
-      }
-      estado2 = put_in(estado, [:jugadores, jugador2.nombre], nuevo)
-      IO.puts("✅ #{jugador2.nombre} se unió. ¡Batalla iniciada!")
-      mostrar_turno(estado2)
-      {:reply, :ok, estado2}
+    cond do
+      map_size(estado.jugadores) >= 2 ->
+        {:reply, {:error, "Sala llena"}, estado}
+
+      Map.has_key?(estado.jugadores, jugador2.nombre) ->
+        {:reply, {:error, "No puedes unirte a tu propia batalla"}, estado}
+
+      true ->
+        case seleccionar_pokemon_usable(jugador2) do
+          {:ok, activo} ->
+            equipo = List.wrap(Map.get(jugador2, :coleccion, []))
+            nuevo = %{entrenador: jugador2, activo: activo, equipo: equipo, accion: nil}
+            estado2 = put_in(estado, [:jugadores, jugador2.nombre], nuevo)
+            estado3 = iniciar_turno(estado2)
+            {:reply, :ok, estado3}
+
+          {:error, reason} ->
+            {:reply, {:error, reason}, estado}
+        end
     end
   end
-
-  # --- Atacar ---
 
   @impl true
-  def handle_call({:atacar, nombre, movimiento}, _from, estado) do
-    estado2 = put_in(estado, [:jugadores, nombre, :accion], {:atacar, movimiento})
-    acciones = Enum.map(estado2.jugadores, fn {_, j} -> j.accion end)
-
-    if Enum.all?(acciones, &(&1 != nil)) do
-      estado3 = resolver_turno(estado2)
-      {:reply, :ok, estado3}
+  def handle_call({:accion, nombre, accion}, _from, estado) do
+    if ganador_definido?(estado) do
+      {:reply, {:error, "La batalla ya terminó"}, estado}
     else
-      IO.puts("⏳ Esperando al rival...")
-      {:reply, :esperando, estado2}
+      cond do
+        not Map.has_key?(estado.jugadores, nombre) ->
+          {:reply, {:error, "No participas en esta batalla"}, estado}
+
+        true ->
+          case validar_accion(estado, nombre, accion) do
+            :ok ->
+              estado2 = put_in(estado, [:jugadores, nombre, :accion], accion)
+
+              if todos_listos?(estado2) do
+                estado3 = resolver_turno(estado2)
+                {:reply, :ok, estado3}
+              else
+                {:reply, :esperando, estado2}
+              end
+
+            {:error, reason} ->
+              {:reply, {:error, reason}, estado}
+          end
+      end
     end
   end
-
-  # --- Rendirse ---
 
   @impl true
   def handle_call({:rendirse, nombre}, _from, estado) do
-    [rival] = Map.keys(estado.jugadores) |> Enum.reject(&(&1 == nombre))
-    IO.puts("🏳️  #{nombre} se rinde.")
-    estado2 = Map.put(estado, :ganador, rival)
-    finalizar_batalla(estado2)
-    {:reply, :ok, estado2}
-  end
+    case rival_de(estado, nombre) do
+      nil ->
+        {:reply, {:error, "No participas en esta batalla"}, estado}
 
-  # --- Estado ---
+      rival ->
+        estado2 = finalizar_con_ganador(estado, rival)
+        {:reply, :ok, estado2}
+    end
+  end
 
   @impl true
   def handle_call(:estado, _from, estado) do
     {:reply, estado, estado}
   end
 
-  # --- Resolver turno ---
+  @impl true
+  def handle_info({:turn_timeout, turno}, estado) do
+    if estado.turno == turno and not ganador_definido?(estado) do
+      estado2 =
+        estado
+        |> completar_acciones_con_pasar()
+        |> resolver_turno()
+
+      {:noreply, estado2}
+    else
+      {:noreply, estado}
+    end
+  end
+
+  defp iniciar_turno(estado) do
+    estado = preparar_activos(estado)
+    cancel_timer(estado.timer_ref)
+    mostrar_turno(estado)
+    ref = Process.send_after(self(), {:turn_timeout, estado.turno}, estado.tiempo_turno)
+    %{estado | timer_ref: ref}
+  end
 
   defp resolver_turno(estado) do
+    cancel_timer(estado.timer_ref)
     [n1, n2] = Map.keys(estado.jugadores)
     j1 = estado.jugadores[n1]
     j2 = estado.jugadores[n2]
 
-    {primero, segundo} =
-      if j1.activo.velocidad >= j2.activo.velocidad,
-        do: {n1, n2}, else: {n2, n1}
+    orden = resolver_orden({n1, j1}, {n2, j2})
 
-    estado2 = ejecutar_accion(estado, primero, segundo)
+    estado2 =
+      Enum.reduce_while(orden, estado, fn {nombre, _j}, acc ->
+        rival = rival_de(acc, nombre)
+        accion = acc.jugadores[nombre].accion
+
+        cond do
+          ganador_definido?(acc) -> {:halt, acc}
+          is_nil(rival) -> {:halt, acc}
+          not vivo?(acc.jugadores[nombre].activo) -> {:cont, acc}
+          not vivo?(acc.jugadores[rival].activo) and accion != {:cambiar, nil} -> {:cont, acc}
+          true -> {:cont, ejecutar_accion(acc, nombre, rival, accion)}
+        end
+      end)
 
     estado3 =
-      if vivo?(estado2.jugadores[segundo].activo) do
-        ejecutar_accion(estado2, segundo, primero)
-      else
-        estado2
-      end
+      estado2
+      |> limpiar_acciones()
+      |> preparar_activos()
+      |> verificar_fin()
 
-    estado4 = estado3
-      |> put_in([:jugadores, n1, :accion], nil)
-      |> put_in([:jugadores, n2, :accion], nil)
-      |> Map.update!(:turno, &(&1 + 1))
+    case estado3 do
+      %{ganador: nil} ->
+        estado3
+        |> Map.update!(:turno, &(&1 + 1))
+        |> iniciar_turno()
 
-    verificar_fin(estado4)
-  end
-
-  defp ejecutar_accion(estado, atacante, defensor) do
-    j_atac = estado.jugadores[atacante]
-    j_def  = estado.jugadores[defensor]
-
-    case j_atac.accion do
-      {:atacar, nombre_mov} ->
-        mov = Enum.find(j_atac.activo.movimientos, fn m ->
-          m.nombre == nombre_mov
-        end)
-
-        if mov do
-          # Usamos la firma del repo: calcular_daño(atacante, defensor, mov, tipos_atac, tipos_def)
-          danio = MotorCombate.calcular_daño(
-            j_atac.activo,
-            j_def.activo,
-            mov,
-            j_atac.activo.tipos,
-            j_def.activo.tipos
-          )
-
-          nueva_salud = max(0, j_def.activo.salud_actual - danio)
-          IO.puts("💥 #{atacante} usa #{nombre_mov} → #{danio} daño a #{defensor} (Salud: #{nueva_salud})")
-
-          activo = %{j_def.activo | salud_actual: nueva_salud}
-          put_in(estado, [:jugadores, defensor, :activo], activo)
-        else
-          IO.puts("❌ Movimiento #{nombre_mov} no válido")
-          estado
-        end
-
-      _ -> estado
+      _ ->
+        estado3
     end
   end
 
-  defp vivo?(pokemon), do: pokemon.salud_actual > 0
+  defp ejecutar_accion(estado, atacante, defensor, accion) do
+    case accion do
+      :pasar ->
+        estado
 
-  defp verificar_fin(estado) do
-    [n1, n2] = Map.keys(estado.jugadores)
-    cond do
-      not vivo?(estado.jugadores[n1].activo) ->
-        estado2 = Map.put(estado, :ganador, n2)
-        finalizar_batalla(estado2)
-        estado2
-      not vivo?(estado.jugadores[n2].activo) ->
-        estado2 = Map.put(estado, :ganador, n1)
-        finalizar_batalla(estado2)
-        estado2
-      true ->
-        mostrar_turno(estado)
+      {:cambiar, pokemon_id} ->
+        cambiar_activo(estado, atacante, pokemon_id)
+
+      {:atacar, nombre_mov} ->
+        j_atac = estado.jugadores[atacante]
+        j_def = estado.jugadores[defensor]
+
+        mov = Enum.find(List.wrap(j_atac.activo.movimientos), &(&1.nombre == nombre_mov))
+
+        if mov do
+          danio =
+            MotorCombate.calcular_daño(
+              j_atac.activo,
+              j_def.activo,
+              mov,
+              Map.get(j_atac.activo, :tipos, []),
+              Map.get(j_def.activo, :tipos, [])
+            )
+
+          nueva_salud = max(0, j_def.activo.salud_actual - danio)
+
+          IO.puts(
+            "💥 #{atacante} usa #{nombre_mov} → #{danio} daño a #{defensor} (Salud: #{nueva_salud})"
+          )
+
+          activo_actualizado = %{j_def.activo | salud_actual: nueva_salud}
+
+          estado
+          |> put_in([:jugadores, defensor, :activo], activo_actualizado)
+          |> actualizar_equipo_con_activo(defensor, activo_actualizado)
+        else
+          estado
+        end
+
+      _ ->
         estado
     end
   end
 
-  # --- Finalizar: monedas + log ---
+  defp cambiar_activo(estado, nombre, pokemon_id) do
+    jugador = estado.jugadores[nombre]
 
-  defp finalizar_batalla(estado) do
-    ganador  = estado.ganador
+    case Enum.find(jugador.equipo, &(&1.id == pokemon_id and vivo?(&1))) do
+      nil ->
+        estado
+
+      pokemon ->
+        IO.puts("🔁 #{nombre} cambia a ##{pokemon.id}")
+        put_in(estado, [:jugadores, nombre, :activo], pokemon)
+    end
+  end
+
+  defp actualizar_equipo_con_activo(estado, nombre, activo) do
+    actualizar = fn pokemon -> if pokemon.id == activo.id, do: activo, else: pokemon end
+
+    update_in(estado, [:jugadores, nombre, :equipo], fn equipo -> Enum.map(equipo, actualizar) end)
+  end
+
+  defp completar_acciones_con_pasar(estado) do
+    Enum.reduce(estado.jugadores, estado, fn {nombre, _}, acc ->
+      if is_nil(acc.jugadores[nombre].accion) do
+        put_in(acc, [:jugadores, nombre, :accion], :pasar)
+      else
+        acc
+      end
+    end)
+  end
+
+  defp preparar_activos(estado) do
+    Enum.reduce(estado.jugadores, estado, fn {nombre, jugador}, acc ->
+      case jugador.activo do
+        %{salud_actual: s} when s > 0 ->
+          acc
+
+        _ ->
+          case siguiente_pokemon_vivo(jugador.equipo) do
+            nil -> acc
+            pokemon -> put_in(acc, [:jugadores, nombre, :activo], pokemon)
+          end
+      end
+    end)
+  end
+
+  defp siguiente_pokemon_vivo(equipo) do
+    Enum.find(equipo, &vivo?/1)
+  end
+
+  defp verificar_fin(estado) do
+    [n1, n2] = Map.keys(estado.jugadores)
+
+    cond do
+      not equipo_tiene_vivos?(estado.jugadores[n1].equipo) -> finalizar_con_ganador(estado, n2)
+      not equipo_tiene_vivos?(estado.jugadores[n2].equipo) -> finalizar_con_ganador(estado, n1)
+      true -> estado
+    end
+  end
+
+  defp finalizar_con_ganador(estado, ganador) do
     [n1, n2] = Map.keys(estado.jugadores)
     perdedor = if ganador == n1, do: n2, else: n1
+    estado = %{estado | ganador: ganador}
+    finalizar_batalla(estado, perdedor)
+  end
 
+  defp finalizar_batalla(estado, perdedor) do
+    ganador = estado.ganador
     IO.puts("\n🏆 ¡#{ganador} gana la batalla!")
     IO.puts("💰 #{ganador} +100 monedas | #{perdedor} +30 monedas")
 
     e_gan = estado.jugadores[ganador].entrenador
     e_per = estado.jugadores[perdedor].entrenador
 
-    GestorEntrenadores.guardar_entrenador(%{e_gan |
-      monedas:            e_gan.monedas + 100,
-      monedas_acumuladas: e_gan.monedas_acumuladas + 100,
-      victorias:          e_gan.victorias + 1
+    GestorEntrenadores.guardar_entrenador(%{
+      e_gan
+      | monedas: e_gan.monedas + 100,
+        monedas_acumuladas: e_gan.monedas_acumuladas + 100,
+        victorias: e_gan.victorias + 1
     })
 
-    GestorEntrenadores.guardar_entrenador(%{e_per |
-      monedas:            e_per.monedas + 30,
-      monedas_acumuladas: e_per.monedas_acumuladas + 30
+    GestorEntrenadores.guardar_entrenador(%{
+      e_per
+      | monedas: e_per.monedas + 30,
+        monedas_acumuladas: e_per.monedas_acumuladas + 30
     })
 
     duracion = DateTime.diff(DateTime.utc_now(), estado.inicio)
-    entrada  = "#{DateTime.utc_now()} | #{n1} vs #{n2} | " <>
-               "Ganador: #{ganador} | Nodo: #{Node.self()} | " <>
-               "Turnos: #{estado.turno} | Duración: #{duracion}s\n"
-    File.write("data/battles.log", entrada, [:append])
+
+    entrada =
+      "#{DateTime.utc_now()} | #{Map.keys(estado.jugadores) |> Enum.join(" vs ")} | " <>
+        "Ganador: #{ganador} | Nodo: #{Node.self()} | " <>
+        "Turnos: #{estado.turno} | Duración: #{duracion}s\n"
+
+    _ = PokemonBattle.Persistencia.append_line("data/battles.log", entrada)
+    PokemonBattle.Cluster.liberar_batalla(estado.id)
+    %{estado | timer_ref: nil}
   end
+
+  defp resolver_orden({n1, j1}, {n2, j2}) do
+    cond do
+      j1.activo.velocidad > j2.activo.velocidad -> [{n1, j1}, {n2, j2}]
+      j2.activo.velocidad > j1.activo.velocidad -> [{n2, j2}, {n1, j1}]
+      true -> Enum.shuffle([{n1, j1}, {n2, j2}])
+    end
+  end
+
+  defp validar_accion(estado, nombre, {:atacar, mov}) do
+    movs = List.wrap(estado.jugadores[nombre].activo.movimientos)
+
+    if Enum.any?(movs, &(&1.nombre == mov)) do
+      :ok
+    else
+      {:error, "Movimiento #{mov} no válido"}
+    end
+  end
+
+  defp validar_accion(estado, nombre, {:cambiar, pokemon_id}) do
+    jugador = estado.jugadores[nombre]
+
+    cond do
+      is_nil(Enum.find(jugador.equipo, &(&1.id == pokemon_id))) ->
+        {:error, "El Pokémon no está en tu equipo"}
+
+      not vivo?(Enum.find(jugador.equipo, &(&1.id == pokemon_id))) ->
+        {:error, "El Pokémon está debilitado"}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validar_accion(_estado, _nombre, :pasar), do: :ok
+  defp validar_accion(_estado, _nombre, _), do: :ok
+
+  defp todos_listos?(estado) do
+    estado.jugadores
+    |> Map.values()
+    |> Enum.all?(&(&1.accion != nil))
+  end
+
+  defp limpiar_acciones(estado) do
+    Enum.reduce(Map.keys(estado.jugadores), estado, fn nombre, acc ->
+      put_in(acc, [:jugadores, nombre, :accion], nil)
+    end)
+  end
+
+  defp vivo?(%{salud_actual: salud}), do: salud > 0
+  defp vivo?(_), do: false
+
+  defp equipo_tiene_vivos?(equipo), do: Enum.any?(equipo, &vivo?/1)
+
+  defp seleccionar_pokemon_usable(entrenador) do
+    case Enum.find(List.wrap(Map.get(entrenador, :coleccion, [])), &vivo?/1) do
+      nil ->
+        {:error, "El entrenador #{entrenador.nombre} no tiene un Pokémon usable para la batalla"}
+
+      pokemon ->
+        {:ok, pokemon}
+    end
+  end
+
+  defp rival_de(estado, nombre) do
+    estado.jugadores
+    |> Map.keys()
+    |> Enum.reject(&(&1 == nombre))
+    |> List.first()
+  end
+
+  defp ganador_definido?(estado), do: not is_nil(estado.ganador)
+
+  defp normalizar_tiempo(tiempo) when is_integer(tiempo) and tiempo < 1000, do: tiempo * 1000
+  defp normalizar_tiempo(tiempo) when is_integer(tiempo), do: tiempo
+  defp normalizar_tiempo(_), do: 20_000
 
   defp mostrar_turno(estado) do
     IO.puts("\n═══ Turno #{estado.turno} ═══")
+
     Enum.each(estado.jugadores, fn {nombre, j} ->
-      p    = j.activo
-      movs = Enum.map_join(p.movimientos, ", ", fn m ->
-        "#{m.nombre}(#{m.poder_base})"
-      end)
-      IO.puts("#{nombre} → #{p.especie} | Salud: #{p.salud_actual}/#{p.salud_maxima} | #{movs}")
+      p = j.activo
+
+      movs =
+        p.movimientos
+        |> List.wrap()
+        |> Enum.map_join(", ", fn m -> "#{m.nombre} (#{m.tipo}, poder #{m.poder_base})" end)
+
+      IO.puts(
+        "Rival: #{nombre} | #{String.capitalize(p.especie)} | Salud: #{p.salud_actual}/#{p.salud_maxima}"
+      )
+
+      IO.puts("Movimientos: #{movs}")
     end)
+  end
+
+  defp cancel_timer(nil), do: :ok
+  defp cancel_timer(ref), do: Process.cancel_timer(ref)
+
+  defp llamar_en_nodo(id, funcion, args, mensaje_local) do
+    node = PokemonBattle.Cluster.nodo_de_batalla(id)
+
+    if node == Node.self() do
+      GenServer.call(via(id), mensaje_local)
+    else
+      :rpc.call(node, __MODULE__, funcion, args)
+    end
+  end
+
+  @impl true
+  def terminate(_reason, estado) do
+    if Map.has_key?(estado, :id) do
+      PokemonBattle.Cluster.liberar_batalla(estado.id)
+    end
+
+    :ok
   end
 
   defp via(id) do
     {:via, Registry, {PokemonBattle.Registry, id}}
   end
-
 end
