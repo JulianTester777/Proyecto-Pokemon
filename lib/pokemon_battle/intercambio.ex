@@ -1,117 +1,128 @@
 defmodule PokemonBattle.Intercambio do
   use GenServer
 
+  alias PokemonBattle.{Cluster, GestorEntrenadores, GestorSalas}
+
   def start_link({codigo, creador}) do
     GenServer.start_link(__MODULE__, {codigo, creador}, name: via(codigo))
   end
 
   def unirse(codigo, usuario) do
-    GenServer.call(via(codigo), {:unirse, usuario})
+    llamar_en_nodo(codigo, :unirse, [codigo, usuario], {:unirse, usuario})
   end
 
   def ofrecer(codigo, usuario, pokemon_id) do
-    GenServer.call(via(codigo), {:ofrecer, usuario, pokemon_id})
+    llamar_en_nodo(
+      codigo,
+      :ofrecer,
+      [codigo, usuario, pokemon_id],
+      {:ofrecer, usuario, pokemon_id}
+    )
   end
 
   def confirmar(codigo, usuario) do
-    GenServer.call(via(codigo), {:confirmar, usuario})
+    llamar_en_nodo(codigo, :confirmar, [codigo, usuario], {:confirmar, usuario})
   end
 
   def cancelar(codigo, usuario) do
-    GenServer.cast(via(codigo), {:cancelar, usuario})
+    llamar_en_nodo(codigo, :cancelar, [codigo, usuario], {:cancelar, usuario})
   end
 
-  # =========================
-  # REGISTRY
-  # =========================
-
-  defp via(codigo) do
-    {:via, Registry, {PokemonBattle.Registry, codigo}}
-  end
-
-  # =========================
-  # INIT
-  # =========================
-
+  @impl true
   def init({codigo, creador}) do
-    estado = %{
-      codigo: codigo,
-      jugador1: creador,
-      jugador2: nil,
-      ofertas: %{},           # %{usuario => pokemon_id}
-      confirmados: MapSet.new()
-    }
-
-    {:ok, estado}
+    {:ok,
+     %{
+       codigo: codigo,
+       jugador1: creador,
+       jugador2: nil,
+       ofertas: %{},
+       confirmados: MapSet.new()
+     }}
   end
 
-  # =========================
-  # HANDLE CALL
-  # =========================
-
-  # Unirse a sala
+  @impl true
   def handle_call({:unirse, usuario}, _from, estado) do
     cond do
-      estado.jugador2 != nil ->
-        {:reply, {:error, "La sala ya está llena"}, estado}
-
       usuario == estado.jugador1 ->
         {:reply, {:error, "No puedes unirte a tu propia sala"}, estado}
 
+      estado.jugador2 != nil ->
+        {:reply, {:error, "La sala ya está llena"}, estado}
+
+      GestorSalas.sala_activa?(usuario) ->
+        {:reply, {:error, "Ya tienes una sala activa"}, estado}
+
       true ->
         nuevo_estado = %{estado | jugador2: usuario}
-        {:reply, {:ok, "Te uniste a la sala #{estado.codigo}"}, nuevo_estado}
+
+        case GestorSalas.registrar_sala(usuario, estado.codigo) do
+          :ok -> {:reply, {:ok, "Te uniste a la sala #{estado.codigo}"}, nuevo_estado}
+          {:error, msg} -> {:reply, {:error, msg}, estado}
+        end
     end
   end
 
-  # Ofrecer Pokémon
+  @impl true
   def handle_call({:ofrecer, usuario, pokemon_id}, _from, estado) do
-    if usuario not in [estado.jugador1, estado.jugador2] do
+    if usuario not in participantes(estado) do
       {:reply, {:error, "No estás en esta sala"}, estado}
     else
-      nuevas_ofertas = Map.put(estado.ofertas, usuario, pokemon_id)
-
-      nuevo_estado = %{
-        estado
-        | ofertas: nuevas_ofertas,
-          confirmados: MapSet.new() # reset si cambia oferta
-      }
-
-      {:reply, {:ok, "Oferta registrada"}, nuevo_estado}
+      with entrenador when not is_nil(entrenador) <- GestorEntrenadores.buscar_entrenador(usuario),
+           true <- GestorEntrenadores.pokemon_pertenece?(entrenador, pokemon_id),
+           false <- pokemon_en_equipo_activo?(entrenador, pokemon_id),
+           pokemon when not is_nil(pokemon) <-
+             GestorEntrenadores.buscar_pokemon(entrenador, pokemon_id) do
+        nuevas_ofertas = Map.put(estado.ofertas, usuario, pokemon_id)
+        nuevo_estado = %{estado | ofertas: nuevas_ofertas, confirmados: MapSet.new()}
+        {:reply, {:ok, formatear_oferta(pokemon)}, nuevo_estado}
+      else
+        false -> {:reply, {:error, "El Pokémon no pertenece al entrenador"}, estado}
+        true -> {:reply, {:error, "El Pokémon está cargado en un equipo activo"}, estado}
+        nil -> {:reply, {:error, "El Pokémon no pertenece al entrenador"}, estado}
+      end
     end
   end
 
-  # Confirmar intercambio
+  @impl true
   def handle_call({:confirmar, usuario}, _from, estado) do
-    if usuario not in [estado.jugador1, estado.jugador2] do
+    if usuario not in participantes(estado) do
       {:reply, {:error, "No estás en esta sala"}, estado}
     else
-      nuevos_confirmados = MapSet.put(estado.confirmados, usuario)
-      nuevo_estado = %{estado | confirmados: nuevos_confirmados}
+      nuevo_estado = %{estado | confirmados: MapSet.put(estado.confirmados, usuario)}
 
       if intercambio_listo?(nuevo_estado) do
-        ejecutar_intercambio(nuevo_estado)
+        case ejecutar_intercambio(nuevo_estado) do
+          {:ok, msg} ->
+            {:stop, :normal, {:ok, msg}, nuevo_estado}
 
-        {:stop, :normal,
-         {:ok, "Intercambio completado correctamente"},
-         nuevo_estado}
+          {:error, reason} ->
+            {:reply, {:error, reason}, estado}
+        end
       else
         {:reply, {:ok, "Confirmación registrada"}, nuevo_estado}
       end
     end
   end
 
-  # =========================
-  # HANDLE CAST
-  # =========================
-
-  def handle_cast({:cancelar, _usuario}, estado) do
-    {:stop, :normal, estado}
+  @impl true
+  def handle_call({:cancelar, usuario}, _from, estado) do
+    if usuario not in participantes(estado) do
+      {:reply, {:error, "No estás en esta sala"}, estado}
+    else
+      {:stop, :normal, {:ok, "Intercambio cancelado"}, estado}
+    end
   end
 
-  # =========================
-  # LÓGICA INTERNA
-  # =========================
+  @impl true
+  def terminate(_reason, estado) do
+    Enum.each(participantes(estado), &GestorSalas.liberar_sala/1)
+    Cluster.liberar_sala_intercambio(estado.codigo)
+    :ok
+  end
+
+  defp participantes(estado) do
+    [estado.jugador1, estado.jugador2] |> Enum.reject(&is_nil/1)
+  end
 
   defp intercambio_listo?(estado) do
     estado.jugador1 != nil and
@@ -123,10 +134,58 @@ defmodule PokemonBattle.Intercambio do
   defp ejecutar_intercambio(estado) do
     j1 = estado.jugador1
     j2 = estado.jugador2
-
     p1 = estado.ofertas[j1]
     p2 = estado.ofertas[j2]
 
-    PokemonBattle.GestorEntrenadores.intercambiar(j1, p1, j2, p2)
+    case GestorEntrenadores.intercambiar(j1, p1, j2, p2) do
+      {:ok, _} -> {:ok, "[Intercambio completado] #{j1} ↔ #{j2}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp formatear_oferta(pokemon) do
+    "Oferta registrada: [##{pokemon.id}] #{String.capitalize(pokemon.especie)} (#{Enum.join(List.wrap(pokemon.tipos), "/")})"
+  end
+
+  defp pokemon_en_equipo_activo?(entrenador, pokemon_id) do
+    case entrenador.equipo_actual do
+      nil ->
+        false
+
+      nombre ->
+        case Enum.find(entrenador.equipos, &(&1["nombre"] == nombre)) do
+          nil -> false
+          equipo -> Enum.member?(List.wrap(equipo["pokemon_ids"]), pokemon_id)
+        end
+    end
+  end
+
+  defp llamar_en_nodo(codigo, funcion, args, mensaje_local) do
+    case Cluster.nodo_de_sala_intercambio(codigo) do
+      nil ->
+        {:error, "No existe una sala con código #{codigo}"}
+
+      node ->
+        if node == Node.self() do
+          call_local(codigo, mensaje_local)
+        else
+          case :rpc.call(node, __MODULE__, funcion, args) do
+            {:badrpc, _} -> {:error, "No existe una sala con código #{codigo}"}
+            other -> other
+          end
+        end
+    end
+  end
+
+  defp call_local(codigo, mensaje) do
+    try do
+      GenServer.call(via(codigo), mensaje)
+    catch
+      :exit, {:noproc, _} -> {:error, "No existe una sala con código #{codigo}"}
+    end
+  end
+
+  defp via(codigo) do
+    {:via, Registry, {PokemonBattle.Registry, codigo}}
   end
 end
