@@ -9,6 +9,7 @@ defmodule PokemonBattle.Pokemon do
     :defensa,
     :velocidad,
     :movimientos,
+    tipos: [],
     salud_actual: 100,
     salud_maxima: 100
   ]
@@ -31,6 +32,7 @@ defmodule PokemonBattle.Pokemon do
       ataque: round(especie.ataque_base * (1 + factor)),
       defensa: round(especie.defensa_base * (1 + factor)),
       velocidad: round(especie.velocidad_base * (1 + factor)),
+      tipos: especie.tipos || [],
       movimientos: []
     }
   end
