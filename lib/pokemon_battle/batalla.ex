@@ -251,7 +251,7 @@ defmodule PokemonBattle.Batalla do
         estado
 
       pokemon ->
-        IO.puts("🔁 #{nombre} cambia a ##{pokemon.id}")
+        IO.puts("#{nombre} cambia a ##{pokemon.id}")
         put_in(estado, [:jugadores, nombre, :activo], pokemon)
     end
   end
