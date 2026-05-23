@@ -457,10 +457,13 @@ defmodule PokemonBattle.Servidor do
         IO.puts("\n¡Sobre abierto! Obtuviste:")
 
         Enum.each(nuevos, fn p ->
-          tipos = Enum.map_join(List.wrap(p.tipos), "/", &String.capitalize/1)
-          IO.puts("[##{p.id}] #{String.capitalize(p.especie)} (#{tipos}) [#{p.rareza}] - Dueño original: #{p.dueño_original}")
-          IO.puts("  Movimientos: #{movs}")
-        end)
+  tipos = Enum.map_join(List.wrap(p.tipos), "/", &String.capitalize/1)
+  movs_str = Enum.map_join(List.wrap(p.movimientos), ", ", fn m ->
+    "#{m.nombre}(#{m.poder_base})"
+  end)
+  IO.puts("[##{p.id}] #{String.capitalize(p.especie)} (#{tipos}) [#{p.rareza}] - Dueño original: #{p.dueño_original}")
+  IO.puts("  Movimientos: #{movs_str}")
+end)
 
         sobres_restantes = Enum.reject(entrenador.sobres_pendientes, &(&1["id"] == sobre["id"]))
         actualizado = %{entrenador | coleccion: entrenador.coleccion ++ nuevos, sobres_pendientes: sobres_restantes}
