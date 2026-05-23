@@ -267,9 +267,12 @@ defmodule PokemonBattle.GestorEntrenadores do
   # -------- GUARDAR --------
 
   def guardar_entrenador(e, archivo \\ @archivo) do
+    mapa = entrenador_a_map(e)
+    mapa = limpiar_equipo_si_necesario(mapa)
+
     case Persistencia.actualizar_datos(archivo, fn lista ->
-           [entrenador_a_map(e) | Enum.reject(lista, &(&1["nombre"] == e.nombre))]
-         end) do
+          [mapa | Enum.reject(lista, &(&1["nombre"] == e.nombre))]
+        end) do
       :ok -> :ok
       {:error, reason} -> {:error, reason}
       other -> other
@@ -332,6 +335,26 @@ defmodule PokemonBattle.GestorEntrenadores do
       "equipos" => e.equipos,
       "equipo_actual" => e.equipo_actual
     }
+  end
+
+   defp limpiar_equipo_si_necesario(entrenador_map) do
+    case entrenador_map["equipo_actual"] do
+      nil ->
+        entrenador_map
+
+      nombre_equipo ->
+        equipo = Enum.find(entrenador_map["equipos"] || [], &(&1["nombre"] == nombre_equipo))
+        ids_equipo = if equipo, do: equipo["pokemon_ids"], else: []
+        ids_coleccion = Enum.map(entrenador_map["coleccion"] || [], & &1["id"])
+        faltantes = Enum.reject(ids_equipo, &(&1 in ids_coleccion))
+
+        if faltantes != [] do
+          IO.puts("⚠️  El equipo '#{nombre_equipo}' ya no es válido porque un Pokémon fue intercambiado. Selecciona un nuevo equipo con 'usar_equipo'.")
+          %{entrenador_map | "equipo_actual" => nil}
+        else
+          entrenador_map
+        end
+    end
   end
 
   defp equipo_existe?(entrenador, nombre) do

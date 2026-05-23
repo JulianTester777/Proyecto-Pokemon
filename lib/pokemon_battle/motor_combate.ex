@@ -22,6 +22,7 @@ defmodule PokemonBattle.MotorCombate do
 
     trunc(daño_base * efectividad * stab * random)
     |> max(1)
+    |> min(100)
   end
 
   defp normalizar_tipos(tipos) when is_list(tipos) do

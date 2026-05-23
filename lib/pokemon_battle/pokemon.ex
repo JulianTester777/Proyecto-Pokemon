@@ -24,6 +24,8 @@ defmodule PokemonBattle.Pokemon do
 
     factor = Enum.random(min..max) / 100
 
+    movimientos = PokemonBattle.SistemaSobres.asignar_movimientos(especie)
+
     %__MODULE__{
       id: :rand.uniform(100_000),
       especie: especie.especie,
@@ -33,7 +35,9 @@ defmodule PokemonBattle.Pokemon do
       defensa: round(especie.defensa_base * (1 + factor)),
       velocidad: round(especie.velocidad_base * (1 + factor)),
       tipos: especie.tipos || [],
-      movimientos: []
+      movimientos: movimientos,
+      salud_actual: 100,
+      salud_maxima: 100
     }
   end
 end

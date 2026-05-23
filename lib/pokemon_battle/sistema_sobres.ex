@@ -73,6 +73,16 @@ defmodule PokemonBattle.SistemaSobres do
     end)
   end
 
+  def asignar_movimientos(especie) do
+    pool = cargar_pool_movimientos()
+    asignar_movimientos(especie.tipos, pool)
+  end
+
+  defp cargar_pool_movimientos do
+    {:ok, json} = File.read("data/moves.json")
+    Jason.decode!(json)
+  end
+
   defp movimiento_aleatorio(nil), do: nil
   defp movimiento_aleatorio([]), do: nil
   defp movimiento_aleatorio(lista), do: Enum.random(lista)

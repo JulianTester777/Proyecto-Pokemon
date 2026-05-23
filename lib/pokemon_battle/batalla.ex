@@ -1,7 +1,7 @@
 defmodule PokemonBattle.Batalla do
   use GenServer
 
-  alias PokemonBattle.{GestorEntrenadores, MotorCombate}
+  alias PokemonBattle.{GestorEntrenadores, MotorCombate, UI}
 
   def start_link({id, jugador1}), do: start_link({id, jugador1, []})
 
@@ -44,6 +44,13 @@ defmodule PokemonBattle.Batalla do
         equipo = List.wrap(Map.get(jugador1, :coleccion, []))
         tiempo_turno = normalizar_tiempo(Keyword.get(opts, :tiempo_turno, 20_000))
 
+        jugador1_estado = restaurar_salud(%{
+          entrenador: jugador1,
+          activo: activo,
+          equipo: equipo,
+          accion: nil
+        })
+
         estado = %{
           id: id,
           turno: 1,
@@ -51,12 +58,7 @@ defmodule PokemonBattle.Batalla do
           timer_ref: nil,
           inicio: DateTime.utc_now(),
           jugadores: %{
-            jugador1.nombre => %{
-              entrenador: jugador1,
-              activo: activo,
-              equipo: equipo,
-              accion: nil
-            }
+            jugador1.nombre => jugador1_estado
           },
           ganador: nil
         }
@@ -82,7 +84,14 @@ defmodule PokemonBattle.Batalla do
         case seleccionar_pokemon_usable(jugador2) do
           {:ok, activo} ->
             equipo = List.wrap(Map.get(jugador2, :coleccion, []))
-            nuevo = %{entrenador: jugador2, activo: activo, equipo: equipo, accion: nil}
+
+            nuevo = restaurar_salud(%{
+              entrenador: jugador2,
+              activo: activo,
+              equipo: equipo,
+              accion: nil
+            })
+
             estado2 = put_in(estado, [:jugadores, jugador2.nombre], nuevo)
             estado3 = iniciar_turno(estado2)
             {:reply, :ok, estado3}
@@ -152,6 +161,31 @@ defmodule PokemonBattle.Batalla do
     end
   end
 
+  @impl true
+  def handle_info(:timeout_desconexion, estado) do
+    if not ganador_definido?(estado) and map_size(estado.jugadores) == 2 do
+      [n1, n2] = Map.keys(estado.jugadores)
+      ganador = if equipo_tiene_vivos?(estado.jugadores[n1].equipo), do: n1, else: n2
+      IO.puts("⏱️  Tiempo de espera agotado. #{ganador} gana por abandono.")
+      estado2 = finalizar_con_ganador(estado, ganador)
+      {:noreply, estado2}
+    else
+      {:noreply, estado}
+    end
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, estado) do
+    if not ganador_definido?(estado) and map_size(estado.jugadores) == 2 do
+      IO.puts("⚠️  Un jugador se desconectó. Esperando 15 segundos antes de dar la victoria al rival...")
+      ref = Process.send_after(self(), :timeout_desconexion, 15_000)
+      {:noreply, Map.put(estado, :disconnect_timer, ref)}
+    else
+      {:noreply, estado}
+    end
+  end
+
+
   defp iniciar_turno(estado) do
     estado = preparar_activos(estado)
     cancel_timer(estado.timer_ref)
@@ -185,6 +219,7 @@ defmodule PokemonBattle.Batalla do
     estado3 =
       estado2
       |> limpiar_acciones()
+      |> notificar_debilitados()
       |> preparar_activos()
       |> verificar_fin()
 
@@ -225,9 +260,8 @@ defmodule PokemonBattle.Batalla do
 
           nueva_salud = max(0, j_def.activo.salud_actual - danio)
 
-          IO.puts(
-            "💥 #{atacante} usa #{nombre_mov} → #{danio} daño a #{defensor} (Salud: #{nueva_salud})"
-          )
+
+          UI.mostrar_ataque(atacante, nombre_mov, danio, defensor, nueva_salud)
 
           activo_actualizado = %{j_def.activo | salud_actual: nueva_salud}
 
@@ -251,7 +285,7 @@ defmodule PokemonBattle.Batalla do
         estado
 
       pokemon ->
-        IO.puts("🔁 #{nombre} cambia a ##{pokemon.id}")
+        IO.puts("🔁 #{nombre} cambia a ##{pokemon.id} #{String.capitalize(pokemon.especie)}")
         put_in(estado, [:jugadores, nombre, :activo], pokemon)
     end
   end
@@ -272,6 +306,12 @@ defmodule PokemonBattle.Batalla do
     end)
   end
 
+  defp restaurar_salud(jugador) do
+    equipo = Enum.map(jugador.equipo, fn p -> %{p | salud_actual: p.salud_maxima} end)
+    activo = %{jugador.activo | salud_actual: jugador.activo.salud_maxima}
+    %{jugador | equipo: equipo, activo: activo}
+  end
+
   defp preparar_activos(estado) do
     Enum.reduce(estado.jugadores, estado, fn {nombre, jugador}, acc ->
       case jugador.activo do
@@ -285,6 +325,18 @@ defmodule PokemonBattle.Batalla do
           end
       end
     end)
+  end
+
+  defp notificar_debilitados(estado) do
+    Enum.each(estado.jugadores, fn {nombre, jugador} ->
+      if not vivo?(jugador.activo) do
+        siguiente = siguiente_pokemon_vivo(jugador.equipo)
+        if siguiente do
+          IO.puts("\n⚠️  #{nombre}: tu Pokémon fue debilitado. Se selecciona automáticamente #{String.capitalize(siguiente.especie)}.")
+        end
+      end
+    end)
+    estado
   end
 
   defp siguiente_pokemon_vivo(equipo) do
@@ -310,7 +362,7 @@ defmodule PokemonBattle.Batalla do
 
   defp finalizar_batalla(estado, perdedor) do
     ganador = estado.ganador
-    IO.puts("\n🏆 ¡#{ganador} gana la batalla!")
+    UI.mostrar_ganador(ganador)
     IO.puts("💰 #{ganador} +100 monedas | #{perdedor} +30 monedas")
 
     e_gan = estado.jugadores[ganador].entrenador
@@ -418,23 +470,54 @@ defmodule PokemonBattle.Batalla do
   defp normalizar_tiempo(_), do: 20_000
 
   defp mostrar_turno(estado) do
-    IO.puts("\n═══ Turno #{estado.turno} ═══")
+    UI.separador()
+    IO.puts(UI.negrita(UI.amarillo("══════════ Turno #{estado.turno} ══════════")))
 
-    Enum.each(estado.jugadores, fn {nombre, j} ->
-      p = j.activo
+    [n1, n2] = Map.keys(estado.jugadores)
+
+    Enum.each([{n1, n2}, {n2, n1}], fn {nombre, nombre_rival} ->
+      yo = estado.jugadores[nombre]
+      rival = estado.jugadores[nombre_rival]
+      p_yo = yo.activo
+      p_rival = rival.activo
+
+      equipo_propio =
+        yo.equipo
+        |> Enum.map_join(" | ", fn p ->
+          cond do
+            p.id == p_yo.id -> "[##{p.id}] #{String.capitalize(p.especie)} (activo)"
+            vivo?(p) -> "[##{p.id}] #{String.capitalize(p.especie)} (vivo)"
+            true -> "[##{p.id}] #{String.capitalize(p.especie)} (debilitado)"
+          end
+        end)
+
+      equipo_rival =
+        rival.equipo
+        |> Enum.map_join(" | ", fn p ->
+          cond do
+            p.id == p_rival.id -> "#{String.capitalize(p.especie)} (activo)"
+            vivo?(p) -> "#{String.capitalize(p.especie)} (vivo)"
+            true -> "#{String.capitalize(p.especie)} (debilitado)"
+          end
+        end)
 
       movs =
-        p.movimientos
-        |> List.wrap()
-        |> Enum.map_join(", ", fn m -> "#{m.nombre} (#{m.tipo}, poder #{m.poder_base})" end)
+        List.wrap(p_yo.movimientos)
+        |> Enum.map_join(", ", fn m ->
+          "#{m.nombre}(#{m.tipo}, poder #{m.poder_base})"
+        end)
 
-      IO.puts(
-        "Rival: #{nombre} | #{String.capitalize(p.especie)} | Salud: #{p.salud_actual}/#{p.salud_maxima}"
-      )
-
+      IO.puts("\n--- #{nombre} ---")
+      IO.puts("Rival: #{nombre_rival} | #{String.capitalize(p_rival.especie)} | Salud: #{UI.barra_salud(p_rival.salud_actual, p_rival.salud_maxima)}")
+      IO.puts("Equipo rival: #{equipo_rival}")
+      IO.puts("Tu Pokémon: [##{p_yo.id}] #{String.capitalize(p_yo.especie)} | Salud: #{UI.barra_salud(p_yo.salud_actual, p_yo.salud_maxima)} | Vel: #{p_yo.velocidad}")
+      IO.puts("Tu equipo: #{equipo_propio}")
       IO.puts("Movimientos: #{movs}")
     end)
+
+    UI.separador()
   end
+
 
   defp cancel_timer(nil), do: :ok
   defp cancel_timer(ref), do: Process.cancel_timer(ref)

@@ -19,13 +19,13 @@ defmodule PokemonBattle.Servidor do
     case String.split(comando) do
       ["iniciar", nombre, clave] ->
         case GestorEntrenadores.iniciar_sesion(nombre, clave) do
-          %{} = entrenador -> bucle_principal(entrenador, especies, movs, tienda, nil)
+          %{} = entrenador -> bucle_principal(entrenador, especies, movs, tienda, nil, nil, true)
           {:error, msg} -> IO.puts(msg); bucle_login(especies, movs, tienda)
         end
 
       ["iniciar", nombre] ->
         case GestorEntrenadores.iniciar_sesion(nombre, "") do
-          %{} = entrenador -> bucle_principal(entrenador, especies, movs, tienda, nil)
+          %{} = entrenador -> bucle_principal(entrenador, especies, movs, tienda, nil, nil, true)
           {:error, msg} -> IO.puts(msg); bucle_login(especies, movs, tienda)
         end
 
@@ -38,57 +38,64 @@ defmodule PokemonBattle.Servidor do
     end
   end
 
-  defp bucle_principal(entrenador, especies, movs, tienda, sala_actual) do
-    IO.puts("\nComandos:")
-    IO.puts("perfil | inventario | clasificacion | tienda")
-    IO.puts("comprar_sobre <tipo> | abrir_sobre <id_sobre|ultimo>")
-    IO.puts("crear_equipo <nombre> <id1[,id2,id3]> | listar_equipos")
-    IO.puts("usar_equipo <nombre> | agregar_pokemon_equipo <nombre> <id> | quitar_pokemon_equipo <nombre> <id>")
-    IO.puts("crear_batalla [tiempo_turno=20] | unirse_batalla <codigo> | iniciar_batalla <codigo>")
-    IO.puts("crear_sala_intercambio | unirse_sala_intercambio <codigo>")
-    IO.puts("ofrecer_pokemon <id> | confirmar_intercambio | cancelar_intercambio")
-    IO.puts("salir")
+  defp bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio, mostrar_menu \\ false) do
+    if mostrar_menu do
+      IO.puts("\nComandos disponibles:")
+      IO.puts("  perfil | inventario | clasificacion | tienda")
+      IO.puts("  comprar_sobre <tipo> | abrir_sobre <id|ultimo>")
+      IO.puts("  crear_equipo <nombre> <id1[,id2,id3]> | listar_equipos")
+      IO.puts("  usar_equipo <nombre> | agregar_pokemon_equipo <nombre> <id> | quitar_pokemon_equipo <nombre> <id>")
+      IO.puts("  crear_batalla [tiempo_turno=20] | listar_salas")
+      IO.puts("  unirse_batalla <codigo> | iniciar_batalla <codigo>")
+      IO.puts("  atacar <movimiento> | cambiar <id_pokemon> | pasar | rendirse")
+      IO.puts("  crear_sala_intercambio | unirse_sala_intercambio <codigo>")
+      IO.puts("  ofrecer_pokemon <id> | confirmar_intercambio | cancelar_intercambio")
+      IO.puts("  ayuda | salir")
+    end
 
     comando = IO.gets("\n> ") |> String.trim()
 
     case String.split(comando) do
+      ["ayuda"] ->
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio, true)
+
       ["perfil"] ->
         GestorEntrenadores.perfil(entrenador)
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["inventario"] ->
         GestorEntrenadores.inventario(entrenador, especies)
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["clasificacion"] ->
         entrenadores = GestorEntrenadores.cargar_todos()
         clasificacion = GestorEntrenadores.clasificacion(entrenadores)
 
         IO.puts("\n=== Clasificación Global ===")
-        IO.puts("# | Entrenador | Victorias | Monedas acumuladas")
-        IO.puts(String.duplicate("-", 45))
+        IO.puts("#  | Entrenador | Victorias | Monedas acumuladas")
+        IO.puts(String.duplicate("-", 50))
 
         Enum.each(clasificacion, fn {i, e} ->
-          IO.puts("#{i} | #{e.nombre} | #{e.victorias} | #{e.monedas_acumuladas}")
+          IO.puts("#{i}  | #{e.nombre} | #{e.victorias} | #{e.monedas_acumuladas}")
         end)
 
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["tienda"] ->
         mostrar_tienda(tienda)
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["comprar_sobre", tipo] ->
         entrenador_actualizado = comprar_sobre(entrenador, tipo, tienda)
-        bucle_principal(entrenador_actualizado, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador_actualizado, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["abrir_sobre"] ->
         entrenador_actualizado = abrir_sobre(entrenador, "ultimo", especies, movs, tienda)
-        bucle_principal(entrenador_actualizado, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador_actualizado, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["abrir_sobre", selector] ->
         entrenador_actualizado = abrir_sobre(entrenador, selector, especies, movs, tienda)
-        bucle_principal(entrenador_actualizado, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador_actualizado, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["crear_equipo", nombre, ids] ->
         entrenador_actualizado =
@@ -97,153 +104,224 @@ defmodule PokemonBattle.Servidor do
             {:error, msg} -> IO.puts(msg); entrenador
           end
 
-        bucle_principal(refrescar_entrenador(entrenador_actualizado), especies, movs, tienda, sala_actual)
+        bucle_principal(refrescar_entrenador(entrenador_actualizado), especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["listar_equipos"] ->
         IO.puts(GestorEntrenadores.listar_equipos(entrenador))
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["usar_equipo", nombre] ->
         case GestorEntrenadores.usar_equipo(entrenador, nombre) do
           {:ok, updated} ->
             IO.puts("Equipo #{nombre} seleccionado")
-            bucle_principal(updated, especies, movs, tienda, sala_actual)
+            bucle_principal(updated, especies, movs, tienda, batalla_actual, sala_intercambio)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
       ["agregar_pokemon_equipo", nombre, id] ->
         case GestorEntrenadores.agregar_pokemon_equipo(entrenador, nombre, String.to_integer(id)) do
           {:ok, updated} ->
             IO.puts("Pokémon agregado al equipo")
-            bucle_principal(updated, especies, movs, tienda, sala_actual)
+            bucle_principal(updated, especies, movs, tienda, batalla_actual, sala_intercambio)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
       ["quitar_pokemon_equipo", nombre, id] ->
         case GestorEntrenadores.quitar_pokemon_equipo(entrenador, nombre, String.to_integer(id)) do
           {:ok, updated} ->
             IO.puts("Pokémon quitado del equipo")
-            bucle_principal(updated, especies, movs, tienda, sala_actual)
+            bucle_principal(updated, especies, movs, tienda, batalla_actual, sala_intercambio)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
-      ["crear_sala"] ->
-        crear_sala_batalla(entrenador, nil, especies, movs, tienda, sala_actual)
-
-      ["crear_sala", "tiempo_turno=" <> tiempo] ->
-        crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, sala_actual)
-
       ["crear_batalla"] ->
-        crear_sala_batalla(entrenador, nil, especies, movs, tienda, sala_actual)
+        crear_sala_batalla(entrenador, nil, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["crear_batalla", "tiempo_turno=" <> tiempo] ->
-        crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, sala_actual)
+        crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      ["crear_sala"] ->
+        crear_sala_batalla(entrenador, nil, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      ["crear_sala", "tiempo_turno=" <> tiempo] ->
+        crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["listar_salas"] ->
         IO.puts(listar_salas_batalla())
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
-
-      ["unirse_sala", codigo] ->
-        case unirse_batalla(codigo, entrenador) do
-          {:ok, msg} -> IO.puts(msg)
-          {:error, msg} -> IO.puts(msg)
-        end
-
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["unirse_batalla", codigo] ->
         case unirse_batalla(codigo, entrenador) do
-          {:ok, msg} -> IO.puts(msg)
-          {:error, msg} -> IO.puts(msg)
+          {:ok, msg} ->
+            IO.puts(msg)
+            bucle_principal(entrenador, especies, movs, tienda, codigo, sala_intercambio)
+
+          {:error, msg} ->
+            IO.puts(msg)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+      ["unirse_sala", codigo] ->
+        case unirse_batalla(codigo, entrenador) do
+          {:ok, msg} ->
+            IO.puts(msg)
+            bucle_principal(entrenador, especies, movs, tienda, codigo, sala_intercambio)
+
+          {:error, msg} ->
+            IO.puts(msg)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+        end
 
       ["iniciar_batalla", codigo] ->
         IO.puts(iniciar_batalla(codigo))
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      # ── ACCIONES DE BATALLA ──
+
+      ["atacar", movimiento] ->
+        case batalla_actual do
+          nil ->
+            IO.puts("No estás en una batalla activa")
+
+          codigo ->
+            case Batalla.atacar(codigo, entrenador.nombre, movimiento) do
+              :ok -> IO.puts("✅ Ataque ejecutado")
+              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
+              {:error, msg} -> IO.puts("❌ #{msg}")
+            end
+        end
+
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      ["cambiar", pokemon_id] ->
+        case batalla_actual do
+          nil ->
+            IO.puts("No estás en una batalla activa")
+
+          codigo ->
+            case Batalla.cambiar(codigo, entrenador.nombre, String.to_integer(pokemon_id)) do
+              :ok -> IO.puts("✅ Cambio ejecutado")
+              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
+              {:error, msg} -> IO.puts("❌ #{msg}")
+            end
+        end
+
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      ["pasar"] ->
+        case batalla_actual do
+          nil ->
+            IO.puts("No estás en una batalla activa")
+
+          codigo ->
+            case Batalla.pasar(codigo, entrenador.nombre) do
+              :ok -> IO.puts("✅ Turno pasado")
+              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
+              {:error, msg} -> IO.puts("❌ #{msg}")
+            end
+        end
+
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+      ["rendirse"] ->
+        case batalla_actual do
+          nil ->
+            IO.puts("No estás en una batalla activa")
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+
+          codigo ->
+            case Batalla.rendirse(codigo, entrenador.nombre) do
+              :ok -> IO.puts("🏳️  Te has rendido.")
+              {:error, msg} -> IO.puts("❌ #{msg}")
+            end
+
+            bucle_principal(entrenador, especies, movs, tienda, nil, sala_intercambio)
+        end
+
+      # ── INTERCAMBIO ──
 
       ["crear_sala_intercambio"] ->
         case GestorSalas.crear_sala_intercambio(entrenador.nombre) do
           {:ok, codigo} ->
             IO.puts("[Sala #{codigo} creada] Comparte este código con el otro entrenador.")
-            bucle_principal(entrenador, especies, movs, tienda, codigo)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, codigo)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
       ["unirse_sala_intercambio", codigo] ->
         case GestorSalas.unirse_sala_intercambio(codigo, entrenador.nombre) do
           {:ok, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, codigo)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, codigo)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
       ["ofrecer_pokemon", id] ->
-        if sala_actual do
-          case GestorSalas.ofrecer_pokemon(sala_actual, entrenador.nombre, String.to_integer(id)) do
-            {:ok, msg} -> IO.puts(msg)
-            {:error, msg} -> IO.puts(msg)
-          end
-        else
-          IO.puts("No estás en una sala")
+        case sala_intercambio do
+          nil ->
+            IO.puts("No estás en una sala de intercambio")
+
+          codigo ->
+            case GestorSalas.ofrecer_pokemon(codigo, entrenador.nombre, String.to_integer(id)) do
+              {:ok, msg} -> IO.puts(msg)
+              {:error, msg} -> IO.puts(msg)
+            end
         end
 
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["confirmar_intercambio"] ->
-        if sala_actual do
-          case GestorSalas.confirmar_intercambio(sala_actual, entrenador.nombre) do
-            {:ok, msg} ->
-              IO.puts(msg)
+        case sala_intercambio do
+          nil ->
+            IO.puts("No estás en una sala de intercambio")
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
-              nueva_sala_actual =
-                if String.starts_with?(msg, "[Intercambio completado]") do
-                  nil
-                else
-                  sala_actual
-                end
+          codigo ->
+            case GestorSalas.confirmar_intercambio(codigo, entrenador.nombre) do
+              {:ok, msg} ->
+                IO.puts(msg)
+                nueva_sala =
+                  if String.starts_with?(msg, "[Intercambio completado]"), do: nil, else: codigo
+                entrenador_actualizado = refrescar_entrenador(entrenador)
+                bucle_principal(entrenador_actualizado, especies, movs, tienda, batalla_actual, nueva_sala)
 
-              bucle_principal(entrenador, especies, movs, tienda, nueva_sala_actual)
-
-            {:error, msg} ->
-              IO.puts(msg)
-              bucle_principal(entrenador, especies, movs, tienda, sala_actual)
-          end
-        else
-          IO.puts("No estás en una sala")
-          bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+              {:error, msg} ->
+                IO.puts(msg)
+                bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+            end
         end
 
       ["cancelar_intercambio"] ->
-        if sala_actual do
-          case GestorSalas.cancelar_intercambio(sala_actual, entrenador.nombre) do
-            {:ok, msg} ->
-              IO.puts(msg)
-              bucle_principal(entrenador, especies, movs, tienda, nil)
+        case sala_intercambio do
+          nil ->
+            IO.puts("No estás en una sala de intercambio")
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
-            {:error, msg} ->
-              IO.puts(msg)
-              bucle_principal(entrenador, especies, movs, tienda, sala_actual)
-          end
-        else
-          IO.puts("No estás en una sala")
-          bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+          codigo ->
+            case GestorSalas.cancelar_intercambio(codigo, entrenador.nombre) do
+              {:ok, msg} ->
+                IO.puts(msg)
+                bucle_principal(entrenador, especies, movs, tienda, batalla_actual, nil)
+
+              {:error, msg} ->
+                IO.puts(msg)
+                bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+            end
         end
 
       ["salir"] ->
@@ -251,8 +329,8 @@ defmodule PokemonBattle.Servidor do
         IO.puts("Guardado. Adiós #{entrenador.nombre}")
 
       _ ->
-        IO.puts("Comando no válido")
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        IO.puts("Comando no válido. Escribe 'ayuda' para ver los comandos disponibles.")
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
     end
   end
 
@@ -302,7 +380,7 @@ defmodule PokemonBattle.Servidor do
     end
   end
 
-  defp crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, sala_actual) do
+  defp crear_sala_batalla(entrenador, tiempo, especies, movs, tienda, batalla_actual, sala_intercambio) do
     tiempo_turno = normalizar_tiempo(tiempo)
 
     case GestorEntrenadores.equipo_para_batalla(entrenador) do
@@ -310,16 +388,16 @@ defmodule PokemonBattle.Servidor do
         case crear_batalla_con_reintento(preparado, tiempo_turno) do
           {:ok, codigo} ->
             IO.puts("[Batalla #{codigo} creada] Comparte este código con el otro entrenador.")
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, codigo, sala_intercambio)
 
           {:error, msg} ->
             IO.puts(msg)
-            bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+            bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
         end
 
       {:error, msg} ->
         IO.puts(msg)
-        bucle_principal(entrenador, especies, movs, tienda, sala_actual)
+        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
     end
   end
 
@@ -363,7 +441,7 @@ defmodule PokemonBattle.Servidor do
         end
 
       :error ->
-        IO.puts("Tipo inválido")
+        IO.puts("Tipo inválido. Usa 'tienda ' para ver los disponibles.")
         entrenador
     end
   end
@@ -381,6 +459,7 @@ defmodule PokemonBattle.Servidor do
         Enum.each(nuevos, fn p ->
           tipos = Enum.map_join(List.wrap(p.tipos), "/", &String.capitalize/1)
           IO.puts("[##{p.id}] #{String.capitalize(p.especie)} (#{tipos}) [#{p.rareza}] - Dueño original: #{p.dueño_original}")
+          IO.puts("  Movimientos: #{movs}")
         end)
 
         sobres_restantes = Enum.reject(entrenador.sobres_pendientes, &(&1["id"] == sobre["id"]))

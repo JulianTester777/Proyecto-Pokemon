@@ -56,22 +56,17 @@ defmodule PokemonBattle.IntercambioDistribuidoTest do
         ensure_nodes_connected(node)
         {:ok, handle, node}
 
-      {:error, _} ->
-        case start_slave_node(name, cookie) do
-          {:ok, handle, node} ->
-            bootstrap_remote_node(node)
-            ensure_nodes_connected(node)
-            {:ok, handle, node}
-
-          {:error, reason} ->
-            flunk("No pude levantar un segundo nodo distribuido: #{inspect(reason)}")
-        end
+      {:error, reason} ->
+        flunk("No pude levantar un nodo distribuido con :peer: #{inspect(reason)}")
     end
   end
 
   defp start_peer_node(name, cookie) do
     if function_exported?(:peer, :start_link, 1) do
-      case :peer.start_link(%{name: name, args: [~c"-setcookie", cookie]}) do
+      case :peer.start_link(%{
+            name: name,
+            args: [~c"-setcookie", cookie]
+          }) do
         {:ok, peer, node} ->
           {:ok, {:peer, peer}, node}
 
@@ -83,17 +78,6 @@ defmodule PokemonBattle.IntercambioDistribuidoTest do
       end
     else
       {:error, :peer_unavailable}
-    end
-  end
-
-  defp start_slave_node(name, cookie) do
-    if function_exported?(:slave, :start_link, 3) do
-      case :slave.start_link(~c"localhost", name, ~c"-setcookie " ++ cookie) do
-        {:ok, node} -> {:ok, {:slave, node}, node}
-        other -> {:error, other}
-      end
-    else
-      {:error, :slave_unavailable}
     end
   end
 
