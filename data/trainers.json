@@ -1,5 +1,6 @@
 [
   {
+    "clave": "1234",
     "coleccion": [
       {
         "ataque": 54,
@@ -10,26 +11,29 @@
         "movimientos": [
           {
             "nombre": "llamarada",
-            "poder_base": 50,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 50
           },
           {
             "nombre": "ascuas",
-            "poder_base": 30,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 30
           },
           {
             "nombre": "arena_tumba",
-            "poder_base": 30,
-            "tipo": "tierra"
+            "tipo": "tierra",
+            "poder_base": 30
           },
           {
             "nombre": "rayo",
-            "poder_base": 55,
-            "tipo": "electrico"
+            "tipo": "electrico",
+            "poder_base": 55
           }
         ],
         "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [],
         "velocidad": 68
       },
       {
@@ -41,26 +45,29 @@
         "movimientos": [
           {
             "nombre": "nitrocarga",
-            "poder_base": 30,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 30
           },
           {
             "nombre": "lanzallamas",
-            "poder_base": 55,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 55
           },
           {
             "nombre": "hoja_afilada",
-            "poder_base": 50,
-            "tipo": "planta"
+            "tipo": "planta",
+            "poder_base": 50
           },
           {
             "nombre": "energia_bola",
-            "poder_base": 50,
-            "tipo": "planta"
+            "tipo": "planta",
+            "poder_base": 50
           }
         ],
         "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [],
         "velocidad": 67
       },
       {
@@ -72,34 +79,54 @@
         "movimientos": [
           {
             "nombre": "giro_fuego",
-            "poder_base": 35,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 35
           },
           {
             "nombre": "ascuas",
-            "poder_base": 30,
-            "tipo": "fuego"
+            "tipo": "fuego",
+            "poder_base": 30
           },
           {
             "nombre": "cascada",
-            "poder_base": 50,
-            "tipo": "agua"
+            "tipo": "agua",
+            "poder_base": 50
           },
           {
             "nombre": "hoja_afilada",
-            "poder_base": 50,
-            "tipo": "planta"
+            "tipo": "planta",
+            "poder_base": 50
           }
         ],
         "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [],
         "velocidad": 67
       }
     ],
+    "equipo_actual": null,
     "equipos": [],
     "monedas": 0,
     "monedas_acumuladas": 0,
     "nombre": "luis",
     "sobres_pendientes": [],
+    "victorias": 0
+  },
+  {
+    "clave": "1234",
+    "coleccion": [],
+    "equipo_actual": null,
+    "equipos": [],
+    "monedas": 0,
+    "monedas_acumuladas": 0,
+    "nombre": "ana",
+    "sobres_pendientes": [
+      {
+        "id": 82639,
+        "tipo": "basico"
+      }
+    ],
     "victorias": 0
   },
   {
@@ -111,20 +138,6 @@
     "sobres_pendientes": [
       {
         "id": 39063,
-        "tipo": "basico"
-      }
-    ],
-    "victorias": 0
-  },
-  {
-    "coleccion": [],
-    "equipos": [],
-    "monedas": 0,
-    "monedas_acumuladas": 0,
-    "nombre": "ana",
-    "sobres_pendientes": [
-      {
-        "id": 82639,
         "tipo": "basico"
       }
     ],
