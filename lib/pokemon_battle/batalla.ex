@@ -285,7 +285,7 @@ defmodule PokemonBattle.Batalla do
         estado
 
       pokemon ->
-        IO.puts("🔁 #{nombre} cambia a ##{pokemon.id} #{String.capitalize(pokemon.especie)}")
+        IO.puts(" #{nombre} cambia a ##{pokemon.id} #{String.capitalize(pokemon.especie)}")
         put_in(estado, [:jugadores, nombre, :activo], pokemon)
     end
   end
@@ -332,7 +332,7 @@ defmodule PokemonBattle.Batalla do
       if not vivo?(jugador.activo) do
         siguiente = siguiente_pokemon_vivo(jugador.equipo)
         if siguiente do
-          IO.puts("\n⚠️  #{nombre}: tu Pokémon fue debilitado. Se selecciona automáticamente #{String.capitalize(siguiente.especie)}.")
+          IO.puts("\n #{nombre}: tu Pokémon fue debilitado. Se selecciona automáticamente #{String.capitalize(siguiente.especie)}.")
         end
       end
     end)
@@ -363,7 +363,7 @@ defmodule PokemonBattle.Batalla do
   defp finalizar_batalla(estado, perdedor) do
     ganador = estado.ganador
     UI.mostrar_ganador(ganador)
-    IO.puts("💰 #{ganador} +100 monedas | #{perdedor} +30 monedas")
+    IO.puts("#{ganador} +100 monedas | #{perdedor} +30 monedas")
 
     e_gan = estado.jugadores[ganador].entrenador
     e_per = estado.jugadores[perdedor].entrenador
