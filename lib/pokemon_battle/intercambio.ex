@@ -28,6 +28,10 @@ defmodule PokemonBattle.Intercambio do
     llamar_en_nodo(codigo, :cancelar, [codigo, usuario], {:cancelar, usuario})
   end
 
+  def estado_sala(codigo) do
+    llamar_en_nodo(codigo, :estado_sala, [codigo], :estado_sala)
+  end
+
   @impl true
   def init({codigo, creador}) do
     {:ok,
@@ -56,8 +60,11 @@ defmodule PokemonBattle.Intercambio do
         nuevo_estado = %{estado | jugador2: usuario}
 
         case GestorSalas.registrar_sala(usuario, estado.codigo) do
-          :ok -> {:reply, {:ok, "Te uniste a la sala #{estado.codigo}"}, nuevo_estado}
-          {:error, msg} -> {:reply, {:error, msg}, estado}
+          :ok ->
+            msg = formatear_estado_sala(nuevo_estado, usuario)
+            {:reply, {:ok, msg}, nuevo_estado}
+          {:error, msg} ->
+            {:reply, {:error, msg}, estado}
         end
     end
   end
@@ -74,7 +81,8 @@ defmodule PokemonBattle.Intercambio do
              GestorEntrenadores.buscar_pokemon(entrenador, pokemon_id) do
         nuevas_ofertas = Map.put(estado.ofertas, usuario, pokemon_id)
         nuevo_estado = %{estado | ofertas: nuevas_ofertas, confirmados: MapSet.new()}
-        {:reply, {:ok, formatear_oferta(pokemon)}, nuevo_estado}
+        msg = formatear_estado_sala(nuevo_estado, usuario)
+        {:reply, {:ok, msg}, nuevo_estado}
       else
         false -> {:reply, {:error, "El Pokémon no pertenece al entrenador"}, estado}
         true -> {:reply, {:error, "El Pokémon está cargado en un equipo activo"}, estado}
@@ -88,18 +96,28 @@ defmodule PokemonBattle.Intercambio do
     if usuario not in participantes(estado) do
       {:reply, {:error, "No estás en esta sala"}, estado}
     else
-      nuevo_estado = %{estado | confirmados: MapSet.put(estado.confirmados, usuario)}
+      cond do
+        map_size(estado.ofertas) < 2 ->
+          {:reply, {:error, "Ambos jugadores deben ofrecer un Pokémon antes de confirmar"}, estado}
 
-      if intercambio_listo?(nuevo_estado) do
-        case ejecutar_intercambio(nuevo_estado) do
-          {:ok, msg} ->
-            {:stop, :normal, {:ok, msg}, nuevo_estado}
+        not Map.has_key?(estado.ofertas, usuario) ->
+          {:reply, {:error, "Debes ofrecer un Pokémon antes de confirmar"}, estado}
 
-          {:error, reason} ->
-            {:reply, {:error, reason}, estado}
-        end
-      else
-        {:reply, {:ok, "Confirmación registrada"}, nuevo_estado}
+        true ->
+          nuevo_estado = %{estado | confirmados: MapSet.put(estado.confirmados, usuario)}
+
+          if intercambio_listo?(nuevo_estado) do
+            case ejecutar_intercambio(nuevo_estado) do
+              {:ok, msg} ->
+                {:stop, :normal, {:ok, msg}, nuevo_estado}
+
+              {:error, reason} ->
+                {:reply, {:error, reason}, estado}
+            end
+          else
+            msg = formatear_estado_sala(nuevo_estado, usuario)
+            {:reply, {:ok, msg}, nuevo_estado}
+          end
       end
     end
   end
@@ -114,10 +132,76 @@ defmodule PokemonBattle.Intercambio do
   end
 
   @impl true
+  def handle_call(:estado_sala, _from, estado) do
+    {:reply, estado, estado}
+  end
+
+  @impl true
   def terminate(_reason, estado) do
     Enum.each(participantes(estado), &GestorSalas.liberar_sala/1)
     Cluster.liberar_sala_intercambio(estado.codigo)
     :ok
+  end
+
+  defp formatear_estado_sala(estado, usuario_actual) do
+    j1 = estado.jugador1
+    j2 = estado.jugador2
+
+    linea_j1 = formatear_linea_jugador(j1, estado, usuario_actual)
+    linea_j2 = formatear_linea_jugador(j2, estado, usuario_actual)
+
+    confirmados = estado.confirmados
+
+    estado_confirmacion =
+      cond do
+        map_size(estado.ofertas) < 2 ->
+          "Esperando ofertas..."
+
+        MapSet.size(confirmados) == 0 ->
+          "Ambos han ofrecido. Confirma con: confirmar_intercambio"
+
+        MapSet.size(confirmados) == 1 ->
+          "Un jugador confirmó. Esperando al otro..."
+
+        true ->
+          "Intercambio listo."
+      end
+
+    """
+    \n[Sala #{estado.codigo}]
+    #{linea_j1}
+    #{linea_j2}
+    #{estado_confirmacion}
+    """
+  end
+
+  defp formatear_linea_jugador(nil, _estado, _usuario_actual) do
+    "  ? → (esperando jugador)"
+  end
+
+  defp formatear_linea_jugador(jugador, estado, usuario_actual) do
+    oferta = Map.get(estado.ofertas, jugador)
+    confirmado = MapSet.member?(estado.confirmados, jugador)
+
+    oferta_str =
+      if oferta do
+        entrenador = GestorEntrenadores.buscar_entrenador(jugador)
+        pokemon = if entrenador, do: GestorEntrenadores.buscar_pokemon(entrenador, oferta), else: nil
+
+        if pokemon do
+          tipos = Enum.map_join(List.wrap(pokemon.tipos), "/", &String.capitalize/1)
+          "[##{pokemon.id}] #{String.capitalize(pokemon.especie)} (#{tipos}, #{pokemon.rareza})"
+        else
+          "[##{oferta}]"
+        end
+      else
+        "(sin oferta)"
+      end
+
+    confirmacion_str = if confirmado, do: " ✓ confirmado", else: ""
+    tuyo = if jugador == usuario_actual, do: " (tú)", else: ""
+
+    "  #{jugador}#{tuyo} → #{oferta_str}#{confirmacion_str}"
   end
 
   defp participantes(estado) do
@@ -141,10 +225,6 @@ defmodule PokemonBattle.Intercambio do
       {:ok, _} -> {:ok, "[Intercambio completado] #{j1} ↔ #{j2}"}
       {:error, reason} -> {:error, reason}
     end
-  end
-
-  defp formatear_oferta(pokemon) do
-    "Oferta registrada: [##{pokemon.id}] #{String.capitalize(pokemon.especie)} (#{Enum.join(List.wrap(pokemon.tipos), "/")})"
   end
 
   defp pokemon_en_equipo_activo?(entrenador, pokemon_id) do

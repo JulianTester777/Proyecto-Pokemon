@@ -3,6 +3,133 @@
     "clave": "1234",
     "coleccion": [
       {
+        "ataque": 54,
+        "defensa": 54,
+        "dueño_original": "amerika",
+        "especie": "bulbasaur",
+        "id": 61177,
+        "movimientos": [
+          {
+            "nombre": "energia_bola",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "bomba_germen",
+            "poder_base": 45,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "ataque_rapido",
+            "poder_base": 40,
+            "tipo": "normal"
+          },
+          {
+            "nombre": "acua_jet",
+            "poder_base": 40,
+            "tipo": "agua"
+          }
+        ],
+        "rareza": "raro",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 50
+      },
+      {
+        "ataque": 54,
+        "defensa": 54,
+        "dueño_original": "dehiby",
+        "especie": "bulbasaur",
+        "id": 25932,
+        "movimientos": [
+          {
+            "nombre": "energia_bola",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "latigo_cepa",
+            "poder_base": 35,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "poder_pasado",
+            "poder_base": 55,
+            "tipo": "roca"
+          },
+          {
+            "nombre": "pin_misil",
+            "poder_base": 45,
+            "tipo": "bicho"
+          }
+        ],
+        "rareza": "raro",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 50
+      },
+      {
+        "ataque": 51,
+        "defensa": 51,
+        "dueño_original": "amerika",
+        "especie": "bulbasaur",
+        "id": 15019,
+        "movimientos": [
+          {
+            "nombre": "hoja_afilada",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "latigo_cepa",
+            "poder_base": 35,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "picotazo",
+            "poder_base": 30,
+            "tipo": "volador"
+          },
+          {
+            "nombre": "giro_fuego",
+            "poder_base": 35,
+            "tipo": "fuego"
+          }
+        ],
+        "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 47
+      }
+    ],
+    "equipo_actual": "miequipo",
+    "equipos": [
+      {
+        "nombre": "miequipo",
+        "pokemon_ids": [
+          61177
+        ]
+      }
+    ],
+    "monedas": 0,
+    "monedas_acumuladas": 0,
+    "nombre": "amerika",
+    "sobres_pendientes": [],
+    "victorias": 0
+  },
+  {
+    "clave": "1234",
+    "coleccion": [
+      {
         "ataque": 63,
         "defensa": 63,
         "dueño_original": "dehiby",
@@ -75,61 +202,6 @@
         "velocidad": 49
       },
       {
-        "ataque": 51,
-        "defensa": 51,
-        "dueño_original": "amerika",
-        "especie": "bulbasaur",
-        "id": 15019,
-        "movimientos": [
-          {
-            "nombre": "hoja_afilada",
-            "poder_base": 50,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "latigo_cepa",
-            "poder_base": 35,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "picotazo",
-            "poder_base": 30,
-            "tipo": "volador"
-          },
-          {
-            "nombre": "giro_fuego",
-            "poder_base": 35,
-            "tipo": "fuego"
-          }
-        ],
-        "rareza": "comun",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 47
-      }
-    ],
-    "equipo_actual": "miequipo",
-    "equipos": [
-      {
-        "nombre": "miequipo",
-        "pokemon_ids": [
-          41068
-        ]
-      }
-    ],
-    "monedas": 0,
-    "monedas_acumuladas": 0,
-    "nombre": "dehiby",
-    "sobres_pendientes": [],
-    "victorias": 0
-  },
-  {
-    "clave": "1234",
-    "coleccion": [
-      {
         "ataque": 53,
         "defensa": 53,
         "dueño_original": "amerika",
@@ -164,78 +236,6 @@
           "planta"
         ],
         "velocidad": 49
-      },
-      {
-        "ataque": 54,
-        "defensa": 54,
-        "dueño_original": "amerika",
-        "especie": "bulbasaur",
-        "id": 61177,
-        "movimientos": [
-          {
-            "nombre": "energia_bola",
-            "poder_base": 50,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "bomba_germen",
-            "poder_base": 45,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "ataque_rapido",
-            "poder_base": 40,
-            "tipo": "normal"
-          },
-          {
-            "nombre": "acua_jet",
-            "poder_base": 40,
-            "tipo": "agua"
-          }
-        ],
-        "rareza": "raro",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 50
-      },
-      {
-        "ataque": 54,
-        "defensa": 54,
-        "dueño_original": "dehiby",
-        "especie": "bulbasaur",
-        "id": 25932,
-        "movimientos": [
-          {
-            "nombre": "energia_bola",
-            "poder_base": 50,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "latigo_cepa",
-            "poder_base": 35,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "poder_pasado",
-            "poder_base": 55,
-            "tipo": "roca"
-          },
-          {
-            "nombre": "pin_misil",
-            "poder_base": 45,
-            "tipo": "bicho"
-          }
-        ],
-        "rareza": "raro",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 50
       }
     ],
     "equipo_actual": "miequipo",
@@ -243,13 +243,13 @@
       {
         "nombre": "miequipo",
         "pokemon_ids": [
-          61177
+          41068
         ]
       }
     ],
     "monedas": 0,
     "monedas_acumuladas": 0,
-    "nombre": "amerika",
+    "nombre": "dehiby",
     "sobres_pendientes": [],
     "victorias": 0
   },
