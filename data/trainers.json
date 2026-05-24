@@ -5,6 +5,42 @@
       {
         "ataque": 54,
         "defensa": 54,
+        "dueño_original": "amerika",
+        "especie": "bulbasaur",
+        "id": 61177,
+        "movimientos": [
+          {
+            "nombre": "energia_bola",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "bomba_germen",
+            "poder_base": 45,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "ataque_rapido",
+            "poder_base": 40,
+            "tipo": "normal"
+          },
+          {
+            "nombre": "acua_jet",
+            "poder_base": 40,
+            "tipo": "agua"
+          }
+        ],
+        "rareza": "raro",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 50
+      },
+      {
+        "ataque": 54,
+        "defensa": 54,
         "dueño_original": "dehiby",
         "especie": "bulbasaur",
         "id": 25932,
@@ -91,8 +127,8 @@
         ]
       }
     ],
-    "monedas": 30,
-    "monedas_acumuladas": 30,
+    "monedas": 0,
+    "monedas_acumuladas": 0,
     "nombre": "amerika",
     "sobres_pendientes": [],
     "victorias": 0
@@ -171,6 +207,42 @@
           "planta"
         ],
         "velocidad": 49
+      },
+      {
+        "ataque": 53,
+        "defensa": 53,
+        "dueño_original": "amerika",
+        "especie": "bulbasaur",
+        "id": 94332,
+        "movimientos": [
+          {
+            "nombre": "hoja_afilada",
+            "poder_base": 50,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "bomba_germen",
+            "poder_base": 45,
+            "tipo": "planta"
+          },
+          {
+            "nombre": "acoso",
+            "poder_base": 35,
+            "tipo": "bicho"
+          },
+          {
+            "nombre": "rayo_hielo",
+            "poder_base": 50,
+            "tipo": "hielo"
+          }
+        ],
+        "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 49
       }
     ],
     "equipo_actual": "equipo3",
@@ -196,11 +268,11 @@
         ]
       }
     ],
-    "monedas": 100,
-    "monedas_acumuladas": 100,
+    "monedas": 0,
+    "monedas_acumuladas": 0,
     "nombre": "dehiby",
     "sobres_pendientes": [],
-    "victorias": 1
+    "victorias": 0
   },
   {
     "clave": "1234",

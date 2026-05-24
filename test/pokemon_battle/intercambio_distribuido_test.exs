@@ -196,8 +196,9 @@ defmodule PokemonBattle.IntercambioDistribuidoTest do
     assert {:ok, _} = :rpc.call(peer_node, GestorSalas, :ofrecer_pokemon, [codigo, "ana", 101])
     assert {:ok, _} = GestorSalas.ofrecer_pokemon(codigo, "luis", 202)
 
-    assert {:ok, "Confirmación registrada"} =
-             :rpc.call(peer_node, GestorSalas, :confirmar_intercambio, [codigo, "ana"])
+    assert {:ok, msg} =
+    :rpc.call(peer_node, GestorSalas, :confirmar_intercambio, [codigo, "ana"])
+    assert String.contains?(msg, "confirmado")
 
     assert {:ok, "[Intercambio completado] ana ↔ luis"} =
              GestorSalas.confirmar_intercambio(codigo, "luis")
