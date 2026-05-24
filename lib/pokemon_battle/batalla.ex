@@ -60,7 +60,8 @@ defmodule PokemonBattle.Batalla do
           jugadores: %{
             jugador1.nombre => jugador1_estado
           },
-          ganador: nil
+          ganador: nil,
+          esperando_cambios: MapSet.new()
         }
 
         IO.puts("⚔️  Batalla #{id} creada. Esperando segundo jugador...")
@@ -111,6 +112,31 @@ defmodule PokemonBattle.Batalla do
         not Map.has_key?(estado.jugadores, nombre) ->
           {:reply, {:error, "No participas en esta batalla"}, estado}
 
+        # Si el jugador necesita elegir un Pokémon de reemplazo
+        MapSet.member?(estado.esperando_cambios, nombre) ->
+          case accion do
+            {:cambiar, pokemon_id} ->
+              case cambiar_activo_forzado(estado, nombre, pokemon_id) do
+                {:ok, estado2} ->
+                  estado3 = %{estado2 | esperando_cambios: MapSet.delete(estado2.esperando_cambios, nombre)}
+
+                  if MapSet.size(estado3.esperando_cambios) == 0 do
+                    estado4 = estado3
+                    |> Map.update!(:turno, &(&1 + 1))
+                    |> iniciar_turno()
+                    {:reply, :ok, estado4}
+                  else
+                    {:reply, :ok, estado3}
+                  end
+
+                {:error, reason} ->
+                  {:reply, {:error, reason}, estado}
+              end
+
+            _ ->
+              {:reply, {:error, "Debes elegir un Pokémon de reemplazo con: cambiar <id>"}, estado}
+          end
+
         true ->
           case validar_accion(estado, nombre, accion) do
             :ok ->
@@ -150,12 +176,26 @@ defmodule PokemonBattle.Batalla do
   @impl true
   def handle_info({:turn_timeout, turno}, estado) do
     if estado.turno == turno and not ganador_definido?(estado) do
-      estado2 =
-        estado
-        |> completar_acciones_con_pasar()
-        |> resolver_turno()
+      cond do
+        # Si hay jugadores esperando elegir Pokémon, elegir automáticamente
+        MapSet.size(estado.esperando_cambios) > 0 ->
+          estado2 = elegir_automaticamente(estado)
+          estado3 = if MapSet.size(estado2.esperando_cambios) == 0 do
+            estado2
+            |> Map.update!(:turno, &(&1 + 1))
+            |> iniciar_turno()
+          else
+            estado2
+          end
+          {:noreply, estado3}
 
-      {:noreply, estado2}
+        true ->
+          estado2 =
+            estado
+            |> completar_acciones_con_pasar()
+            |> resolver_turno()
+          {:noreply, estado2}
+      end
     else
       {:noreply, estado}
     end
@@ -185,9 +225,8 @@ defmodule PokemonBattle.Batalla do
     end
   end
 
-
   defp iniciar_turno(estado) do
-    estado = preparar_activos(estado)
+    estado = preparar_activos_si_necesario(estado)
     cancel_timer(estado.timer_ref)
     mostrar_turno(estado)
     ref = Process.send_after(self(), {:turn_timeout, estado.turno}, estado.tiempo_turno)
@@ -219,18 +258,81 @@ defmodule PokemonBattle.Batalla do
     estado3 =
       estado2
       |> limpiar_acciones()
-      |> notificar_debilitados()
-      |> preparar_activos()
+      |> verificar_debilitados()
       |> verificar_fin()
 
     case estado3 do
       %{ganador: nil} ->
-        estado3
-        |> Map.update!(:turno, &(&1 + 1))
-        |> iniciar_turno()
+        if MapSet.size(estado3.esperando_cambios) > 0 do
+          # Hay jugadores que necesitan elegir Pokémon
+          mostrar_solicitud_cambio(estado3)
+          cancel_timer(estado3.timer_ref)
+          ref = Process.send_after(self(), {:turn_timeout, estado3.turno}, estado3.tiempo_turno)
+          %{estado3 | timer_ref: ref}
+        else
+          estado3
+          |> Map.update!(:turno, &(&1 + 1))
+          |> iniciar_turno()
+        end
 
       _ ->
         estado3
+    end
+  end
+
+  defp verificar_debilitados(estado) do
+    Enum.reduce(estado.jugadores, estado, fn {nombre, jugador}, acc ->
+      if not vivo?(jugador.activo) and siguiente_pokemon_vivo(jugador.equipo) != nil do
+        %{acc | esperando_cambios: MapSet.put(acc.esperando_cambios, nombre)}
+      else
+        acc
+      end
+    end)
+  end
+
+  defp elegir_automaticamente(estado) do
+    Enum.reduce(MapSet.to_list(estado.esperando_cambios), estado, fn nombre, acc ->
+      jugador = acc.jugadores[nombre]
+      case siguiente_pokemon_vivo(jugador.equipo) do
+        nil ->
+          acc
+        pokemon ->
+          IO.puts("⏱️  Tiempo agotado. #{nombre}: se selecciona automáticamente #{String.capitalize(pokemon.especie)}.")
+          acc
+          |> put_in([:jugadores, nombre, :activo], pokemon)
+          |> Map.update!(:esperando_cambios, &MapSet.delete(&1, nombre))
+      end
+    end)
+  end
+
+  defp mostrar_solicitud_cambio(estado) do
+    Enum.each(MapSet.to_list(estado.esperando_cambios), fn nombre ->
+      jugador = estado.jugadores[nombre]
+      pokemon_disponibles =
+        jugador.equipo
+        |> Enum.filter(&vivo?/1)
+        |> Enum.map_join(", ", fn p ->
+          "[##{p.id}] #{String.capitalize(p.especie)} (Salud: #{p.salud_actual})"
+        end)
+
+      IO.puts("\n⚠️  #{nombre}: tu Pokémon fue debilitado.")
+      IO.puts("Elige tu siguiente Pokémon con: cambiar <id>")
+      IO.puts("Disponibles: #{pokemon_disponibles}")
+      IO.puts("(Tienes #{div(estado.tiempo_turno, 1000)} segundos o se elegirá automáticamente)")
+    end)
+  end
+
+  defp cambiar_activo_forzado(estado, nombre, pokemon_id) do
+    jugador = estado.jugadores[nombre]
+
+    case Enum.find(jugador.equipo, &(&1.id == pokemon_id and vivo?(&1))) do
+      nil ->
+        {:error, "El Pokémon ##{pokemon_id} no está disponible o está debilitado"}
+
+      pokemon ->
+        IO.puts("🔁 #{nombre} elige a [##{pokemon.id}] #{String.capitalize(pokemon.especie)}")
+        estado2 = put_in(estado, [:jugadores, nombre, :activo], pokemon)
+        {:ok, estado2}
     end
   end
 
@@ -260,7 +362,6 @@ defmodule PokemonBattle.Batalla do
 
           nueva_salud = max(0, j_def.activo.salud_actual - danio)
 
-
           UI.mostrar_ataque(atacante, nombre_mov, danio, defensor, nueva_salud)
 
           activo_actualizado = %{j_def.activo | salud_actual: nueva_salud}
@@ -285,14 +386,13 @@ defmodule PokemonBattle.Batalla do
         estado
 
       pokemon ->
-        IO.puts(" #{nombre} cambia a ##{pokemon.id} #{String.capitalize(pokemon.especie)}")
+        IO.puts("🔁 #{nombre} cambia a [##{pokemon.id}] #{String.capitalize(pokemon.especie)}")
         put_in(estado, [:jugadores, nombre, :activo], pokemon)
     end
   end
 
   defp actualizar_equipo_con_activo(estado, nombre, activo) do
     actualizar = fn pokemon -> if pokemon.id == activo.id, do: activo, else: pokemon end
-
     update_in(estado, [:jugadores, nombre, :equipo], fn equipo -> Enum.map(equipo, actualizar) end)
   end
 
@@ -312,31 +412,17 @@ defmodule PokemonBattle.Batalla do
     %{jugador | equipo: equipo, activo: activo}
   end
 
-  defp preparar_activos(estado) do
+  defp preparar_activos_si_necesario(estado) do
     Enum.reduce(estado.jugadores, estado, fn {nombre, jugador}, acc ->
-      case jugador.activo do
-        %{salud_actual: s} when s > 0 ->
-          acc
-
-        _ ->
-          case siguiente_pokemon_vivo(jugador.equipo) do
-            nil -> acc
-            pokemon -> put_in(acc, [:jugadores, nombre, :activo], pokemon)
-          end
-      end
-    end)
-  end
-
-  defp notificar_debilitados(estado) do
-    Enum.each(estado.jugadores, fn {nombre, jugador} ->
-      if not vivo?(jugador.activo) do
-        siguiente = siguiente_pokemon_vivo(jugador.equipo)
-        if siguiente do
-          IO.puts("\n #{nombre}: tu Pokémon fue debilitado. Se selecciona automáticamente #{String.capitalize(siguiente.especie)}.")
+      if not vivo?(jugador.activo) and not MapSet.member?(acc.esperando_cambios, nombre) do
+        case siguiente_pokemon_vivo(jugador.equipo) do
+          nil -> acc
+          pokemon -> put_in(acc, [:jugadores, nombre, :activo], pokemon)
         end
+      else
+        acc
       end
     end)
-    estado
   end
 
   defp siguiente_pokemon_vivo(equipo) do
@@ -363,7 +449,7 @@ defmodule PokemonBattle.Batalla do
   defp finalizar_batalla(estado, perdedor) do
     ganador = estado.ganador
     UI.mostrar_ganador(ganador)
-    IO.puts("#{ganador} +100 monedas | #{perdedor} +30 monedas")
+    IO.puts("💰 #{ganador} +100 monedas | #{perdedor} +30 monedas")
 
     e_gan = estado.jugadores[ganador].entrenador
     e_per = estado.jugadores[perdedor].entrenador
@@ -518,7 +604,6 @@ defmodule PokemonBattle.Batalla do
     UI.separador()
   end
 
-
   defp cancel_timer(nil), do: :ok
   defp cancel_timer(ref), do: Process.cancel_timer(ref)
 
@@ -537,7 +622,6 @@ defmodule PokemonBattle.Batalla do
     if Map.has_key?(estado, :id) do
       PokemonBattle.Cluster.liberar_batalla(estado.id)
     end
-
     :ok
   end
 
