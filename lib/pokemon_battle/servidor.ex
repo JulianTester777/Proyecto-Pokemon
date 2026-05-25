@@ -39,6 +39,7 @@ defmodule PokemonBattle.Servidor do
   end
 
   defp bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio, mostrar_menu \\ false) do
+    entrenador = refrescar_entrenador(entrenador)
     if mostrar_menu do
       IO.puts("\nComandos disponibles:")
       IO.puts("  perfil | inventario | clasificacion | tienda")
@@ -60,12 +61,14 @@ defmodule PokemonBattle.Servidor do
         bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio, true)
 
       ["perfil"] ->
-        GestorEntrenadores.perfil(entrenador)
-        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+      entrenador_fresco = refrescar_entrenador(entrenador)
+      GestorEntrenadores.perfil(entrenador_fresco)
+      bucle_principal(entrenador_fresco, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["inventario"] ->
-        GestorEntrenadores.inventario(entrenador, especies)
-        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+      entrenador_fresco = refrescar_entrenador(entrenador)
+      GestorEntrenadores.inventario(entrenador_fresco, especies)
+      bucle_principal(entrenador_fresco, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["clasificacion"] ->
         entrenadores = GestorEntrenadores.cargar_todos()
@@ -86,7 +89,8 @@ defmodule PokemonBattle.Servidor do
         bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["comprar_sobre", tipo] ->
-        entrenador_actualizado = comprar_sobre(entrenador, tipo, tienda)
+        entrenador_fresco = refrescar_entrenador(entrenador)
+        entrenador_actualizado = comprar_sobre(entrenador_fresco, tipo, tienda)
         bucle_principal(entrenador_actualizado, especies, movs, tienda, batalla_actual, sala_intercambio)
 
       ["abrir_sobre"] ->
@@ -188,50 +192,64 @@ defmodule PokemonBattle.Servidor do
       # ── ACCIONES DE BATALLA ──
 
       ["atacar", movimiento] ->
-        case batalla_actual do
-          nil ->
-            IO.puts("No estás en una batalla activa")
+      case batalla_actual do
+        nil ->
+          IO.puts("No estás en una batalla activa")
+          bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
-          codigo ->
-            case Batalla.atacar(codigo, entrenador.nombre, movimiento) do
-              :ok -> IO.puts("✅ Ataque ejecutado")
-              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
-              {:error, msg} -> IO.puts("❌ #{msg}")
-            end
-        end
-
-        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+        codigo ->
+          case Batalla.atacar(codigo, entrenador.nombre, movimiento) do
+            :ok ->
+              IO.puts("✅ Ataque ejecutado")
+              bucle_principal(refrescar_entrenador(entrenador), especies, movs, tienda, batalla_actual, sala_intercambio)
+            :esperando ->
+              IO.puts("⏳ Acción registrada, esperando al rival...")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+            {:error, msg} ->
+              IO.puts("❌ #{msg}")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+          end
+      end
 
       ["cambiar", pokemon_id] ->
-        case batalla_actual do
-          nil ->
-            IO.puts("No estás en una batalla activa")
+      case batalla_actual do
+        nil ->
+          IO.puts("No estás en una batalla activa")
+          bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
-          codigo ->
-            case Batalla.cambiar(codigo, entrenador.nombre, String.to_integer(pokemon_id)) do
-              :ok -> IO.puts("✅ Cambio ejecutado")
-              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
-              {:error, msg} -> IO.puts("❌ #{msg}")
-            end
-        end
-
-        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+        codigo ->
+          case Batalla.cambiar(codigo, entrenador.nombre, String.to_integer(pokemon_id)) do
+            :ok ->
+              IO.puts("✅ Cambio ejecutado")
+              bucle_principal(refrescar_entrenador(entrenador), especies, movs, tienda, batalla_actual, sala_intercambio)
+            :esperando ->
+              IO.puts("⏳ Acción registrada, esperando al rival...")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+            {:error, msg} ->
+              IO.puts("❌ #{msg}")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+          end
+      end
 
       ["pasar"] ->
-        case batalla_actual do
-          nil ->
-            IO.puts("No estás en una batalla activa")
+      case batalla_actual do
+        nil ->
+          IO.puts("No estás en una batalla activa")
+          bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
 
-          codigo ->
-            case Batalla.pasar(codigo, entrenador.nombre) do
-              :ok -> IO.puts("✅ Turno pasado")
-              :esperando -> IO.puts("⏳ Acción registrada, esperando al rival...")
-              {:error, msg} -> IO.puts("❌ #{msg}")
-            end
-        end
-
-        bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
-
+        codigo ->
+          case Batalla.pasar(codigo, entrenador.nombre) do
+            :ok ->
+              IO.puts("✅ Turno pasado")
+              bucle_principal(refrescar_entrenador(entrenador), especies, movs, tienda, batalla_actual, sala_intercambio)
+            :esperando ->
+              IO.puts("⏳ Acción registrada, esperando al rival...")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+            {:error, msg} ->
+              IO.puts("❌ #{msg}")
+              bucle_principal(entrenador, especies, movs, tienda, batalla_actual, sala_intercambio)
+          end
+      end
       ["rendirse"] ->
         case batalla_actual do
           nil ->

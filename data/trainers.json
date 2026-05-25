@@ -3,6 +3,138 @@
     "clave": "1234",
     "coleccion": [
       {
+        "ataque": 63,
+        "defensa": 63,
+        "dueño_original": "dehiby",
+        "especie": "bulbasaur",
+        "id": 41068,
+        "movimientos": [
+          {
+            "nombre": "latigo_cepa",
+            "tipo": "planta",
+            "poder_base": 35
+          },
+          {
+            "nombre": "energia_bola",
+            "tipo": "planta",
+            "poder_base": 50
+          },
+          {
+            "nombre": "chispa",
+            "tipo": "electrico",
+            "poder_base": 40
+          },
+          {
+            "nombre": "electrobola",
+            "tipo": "electrico",
+            "poder_base": 50
+          }
+        ],
+        "rareza": "epico",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "planta"
+        ],
+        "velocidad": 58
+      }
+    ],
+    "equipo_actual": "miequipo",
+    "equipos": [
+      {
+        "nombre": "miequipo",
+        "pokemon_ids": [
+          41068
+        ]
+      },
+      {
+        "nombre": "equipo2",
+        "pokemon_ids": [
+          41068,
+          9434
+        ]
+      },
+      {
+        "nombre": "equipo3",
+        "pokemon_ids": [
+          41068,
+          9434
+        ]
+      },
+      {
+        "nombre": "equiponuevo",
+        "pokemon_ids": [
+          41068,
+          9434,
+          94332
+        ]
+      }
+    ],
+    "monedas": 60,
+    "monedas_acumuladas": 60,
+    "nombre": "dehiby",
+    "sobres_pendientes": [],
+    "victorias": 0
+  },
+  {
+    "clave": "1234",
+    "coleccion": [
+      {
+        "ataque": 56,
+        "defensa": 46,
+        "dueño_original": "julian",
+        "especie": "charmander",
+        "id": 52679,
+        "movimientos": [
+          {
+            "nombre": "lanzallamas",
+            "poder_base": 55,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "ascuas",
+            "poder_base": 30,
+            "tipo": "fuego"
+          },
+          {
+            "nombre": "corte",
+            "poder_base": 40,
+            "tipo": "normal"
+          },
+          {
+            "nombre": "acua_jet",
+            "poder_base": 40,
+            "tipo": "agua"
+          }
+        ],
+        "rareza": "comun",
+        "salud_actual": 100,
+        "salud_maxima": 100,
+        "tipos": [
+          "fuego"
+        ],
+        "velocidad": 70
+      }
+    ],
+    "equipo_actual": "miequipo",
+    "equipos": [
+      {
+        "nombre": "miequipo",
+        "pokemon_ids": [
+          52679
+        ]
+      }
+    ],
+    "monedas": 300,
+    "monedas_acumuladas": 400,
+    "nombre": "julian",
+    "sobres_pendientes": [],
+    "victorias": 4
+  },
+  {
+    "clave": "1234",
+    "coleccion": [
+      {
         "ataque": 54,
         "defensa": 54,
         "dueño_original": "amerika",
@@ -132,202 +264,6 @@
     "nombre": "amerika",
     "sobres_pendientes": [],
     "victorias": 0
-  },
-  {
-    "clave": "1234",
-    "coleccion": [
-      {
-        "ataque": 63,
-        "defensa": 63,
-        "dueño_original": "dehiby",
-        "especie": "bulbasaur",
-        "id": 41068,
-        "movimientos": [
-          {
-            "nombre": "latigo_cepa",
-            "poder_base": 35,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "energia_bola",
-            "poder_base": 50,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "chispa",
-            "poder_base": 40,
-            "tipo": "electrico"
-          },
-          {
-            "nombre": "electrobola",
-            "poder_base": 50,
-            "tipo": "electrico"
-          }
-        ],
-        "rareza": "epico",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 58
-      },
-      {
-        "ataque": 53,
-        "defensa": 53,
-        "dueño_original": "dehiby",
-        "especie": "bulbasaur",
-        "id": 9434,
-        "movimientos": [
-          {
-            "nombre": "bomba_germen",
-            "poder_base": 45,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "latigo_cepa",
-            "poder_base": 35,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "chispa",
-            "poder_base": 40,
-            "tipo": "electrico"
-          },
-          {
-            "nombre": "giro_fuego",
-            "poder_base": 35,
-            "tipo": "fuego"
-          }
-        ],
-        "rareza": "comun",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 49
-      },
-      {
-        "ataque": 53,
-        "defensa": 53,
-        "dueño_original": "amerika",
-        "especie": "bulbasaur",
-        "id": 94332,
-        "movimientos": [
-          {
-            "nombre": "hoja_afilada",
-            "poder_base": 50,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "bomba_germen",
-            "poder_base": 45,
-            "tipo": "planta"
-          },
-          {
-            "nombre": "acoso",
-            "poder_base": 35,
-            "tipo": "bicho"
-          },
-          {
-            "nombre": "rayo_hielo",
-            "poder_base": 50,
-            "tipo": "hielo"
-          }
-        ],
-        "rareza": "comun",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "planta"
-        ],
-        "velocidad": 49
-      }
-    ],
-    "equipo_actual": "equipo3",
-    "equipos": [
-      {
-        "nombre": "miequipo",
-        "pokemon_ids": [
-          41068
-        ]
-      },
-      {
-        "nombre": "equipo2",
-        "pokemon_ids": [
-          41068,
-          9434
-        ]
-      },
-      {
-        "nombre": "equipo3",
-        "pokemon_ids": [
-          41068,
-          9434
-        ]
-      }
-    ],
-    "monedas": 0,
-    "monedas_acumuladas": 0,
-    "nombre": "dehiby",
-    "sobres_pendientes": [],
-    "victorias": 0
-  },
-  {
-    "clave": "1234",
-    "coleccion": [
-      {
-        "ataque": 56,
-        "defensa": 46,
-        "dueño_original": "julian",
-        "especie": "charmander",
-        "id": 52679,
-        "movimientos": [
-          {
-            "nombre": "lanzallamas",
-            "poder_base": 55,
-            "tipo": "fuego"
-          },
-          {
-            "nombre": "ascuas",
-            "poder_base": 30,
-            "tipo": "fuego"
-          },
-          {
-            "nombre": "corte",
-            "poder_base": 40,
-            "tipo": "normal"
-          },
-          {
-            "nombre": "acua_jet",
-            "poder_base": 40,
-            "tipo": "agua"
-          }
-        ],
-        "rareza": "comun",
-        "salud_actual": 100,
-        "salud_maxima": 100,
-        "tipos": [
-          "fuego"
-        ],
-        "velocidad": 70
-      }
-    ],
-    "equipo_actual": "miequipo",
-    "equipos": [
-      {
-        "nombre": "miequipo",
-        "pokemon_ids": [
-          52679
-        ]
-      }
-    ],
-    "monedas": 100,
-    "monedas_acumuladas": 100,
-    "nombre": "julian",
-    "sobres_pendientes": [],
-    "victorias": 1
   },
   {
     "clave": "1234",
