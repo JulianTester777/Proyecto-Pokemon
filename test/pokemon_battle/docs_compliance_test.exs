@@ -174,4 +174,27 @@ defmodule PokemonBattle.DocsComplianceTest do
   assert ana.nombre == "ana"
 end
 
+test "clasificacion orders by victories then by accumulated coins" do
+  :ok = GestorEntrenadores.guardar_entrenador(
+    trainer_fixture("ana", "1234", [], victorias: 5, monedas_acumuladas: 500)
+  )
+  :ok = GestorEntrenadores.guardar_entrenador(
+    trainer_fixture("luis", "1234", [], victorias: 5, monedas_acumuladas: 300)
+  )
+  :ok = GestorEntrenadores.guardar_entrenador(
+    trainer_fixture("pedro", "1234", [], victorias: 3, monedas_acumuladas: 1000)
+  )
+
+  entrenadores = GestorEntrenadores.cargar_todos()
+  clasificacion = GestorEntrenadores.clasificacion(entrenadores)
+
+  nombres = Enum.map(clasificacion, fn {_, e} -> e.nombre end)
+  pos_ana = Enum.find_index(nombres, &(&1 == "ana"))
+  pos_luis = Enum.find_index(nombres, &(&1 == "luis"))
+  pos_pedro = Enum.find_index(nombres, &(&1 == "pedro"))
+
+  assert pos_ana < pos_luis
+  assert pos_luis < pos_pedro
+end
+
 end
