@@ -219,5 +219,23 @@ test "cannot create team with more than 3 pokemon" do
   assert {:error, _} = GestorEntrenadores.crear_equipo(loaded, "grande", "1,2,3,4")
 end
 
+test "damage calculation respects type effectiveness" do
+  alias PokemonBattle.{Movimiento, MotorCombate}
+
+  atacante = %{ataque: 100, defensa: 50, velocidad: 70, salud_actual: 100, salud_maxima: 100}
+  defensor = %{ataque: 50, defensa: 50, velocidad: 50, salud_actual: 100, salud_maxima: 100}
+
+  mov_fuerte = %Movimiento{nombre: "llamarada", tipo: "fuego", poder_base: 50}
+  mov_debil = %Movimiento{nombre: "pistola_agua", tipo: "agua", poder_base: 50}
+  mov_neutro = %Movimiento{nombre: "placaje", tipo: "normal", poder_base: 50}
+
+  danio_fuerte = MotorCombate.calcular_daño(atacante, defensor, mov_fuerte, ["fuego"], ["planta"])
+  danio_debil = MotorCombate.calcular_daño(atacante, defensor, mov_debil, ["agua"], ["planta"])
+  danio_neutro = MotorCombate.calcular_daño(atacante, defensor, mov_neutro, ["normal"], ["planta"])
+
+  assert danio_fuerte > danio_neutro
+  assert danio_debil < danio_neutro
+end
+
 
 end
