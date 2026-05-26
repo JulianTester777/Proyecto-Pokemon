@@ -163,4 +163,15 @@ defmodule PokemonBattle.DocsComplianceTest do
     assert hd(ana.coleccion).dueño_original == "luis"
     assert hd(luis.coleccion).dueño_original == "ana"
   end
+
+  test "perfil shows correct trainer info" do
+  :ok = GestorEntrenadores.guardar_entrenador(
+    trainer_fixture("ana", "1234", [], monedas: 150, victorias: 3)
+  )
+  ana = GestorEntrenadores.buscar_entrenador("ana")
+  assert ana.monedas == 150
+  assert ana.victorias == 3
+  assert ana.nombre == "ana"
+end
+
 end
