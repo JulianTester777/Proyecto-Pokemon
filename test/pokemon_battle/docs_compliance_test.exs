@@ -207,4 +207,17 @@ test "cannot create team with duplicate pokemon ids" do
 end
 
 
+test "cannot create team with more than 3 pokemon" do
+  p1 = high_power_pokemon(1, "charmander", "ana", ["fuego"], 70)
+  p2 = high_power_pokemon(2, "squirtle", "ana", ["agua"], 60)
+  p3 = high_power_pokemon(3, "bulbasaur", "ana", ["planta"], 50)
+  p4 = high_power_pokemon(4, "charmander", "ana", ["fuego"], 80)
+  trainer = trainer_fixture("ana", "1234", [p1, p2, p3, p4])
+  :ok = GestorEntrenadores.guardar_entrenador(trainer)
+
+  loaded = GestorEntrenadores.buscar_entrenador("ana")
+  assert {:error, _} = GestorEntrenadores.crear_equipo(loaded, "grande", "1,2,3,4")
+end
+
+
 end
