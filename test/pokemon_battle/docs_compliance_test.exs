@@ -197,4 +197,14 @@ test "clasificacion orders by victories then by accumulated coins" do
   assert pos_luis < pos_pedro
 end
 
+test "cannot create team with duplicate pokemon ids" do
+  p1 = high_power_pokemon(1, "charmander", "ana", ["fuego"], 70)
+  trainer = trainer_fixture("ana", "1234", [p1])
+  :ok = GestorEntrenadores.guardar_entrenador(trainer)
+
+  loaded = GestorEntrenadores.buscar_entrenador("ana")
+  assert {:error, _} = GestorEntrenadores.crear_equipo(loaded, "duplicado", "1,1")
+end
+
+
 end
